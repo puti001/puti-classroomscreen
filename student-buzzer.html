@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Puti-AI | 學生手機即時搶答端</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Outfit:wght@800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Zen Maru Gothic', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #FFFDF9;
+      color: #2D3748;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+    .buzzer-box {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+    .user-info-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    .input-field {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 9999px;
+      border: 2px solid #E2E8F0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      outline: none;
+      text-align: center;
+    }
+    .input-field:focus {
+      border-color: #FF9F1C;
+    }
+
+    /* Giant 3D Glowing Buzzer */
+    .big-buzzer-btn {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      border: 8px solid #FFF;
+      background: radial-gradient(circle at 35% 35%, #FF6B6B 0%, #E63946 50%, #B7094C 100%);
+      box-shadow: 0 15px 35px rgba(230, 57, 70, 0.4), 0 0 0 10px rgba(255, 107, 107, 0.2), inset 0 6px 12px rgba(255,255,255,0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .big-buzzer-btn:active {
+      transform: scale(0.92);
+      box-shadow: 0 6px 15px rgba(230, 57, 70, 0.5), 0 0 0 6px rgba(255, 107, 107, 0.3), inset 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .buzzer-text {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .buzzer-sub {
+      font-size: 0.85rem;
+      font-weight: 700;
+      opacity: 0.9;
+    }
+
+    .buzzer-status {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #4A5568;
+      text-align: center;
+      min-height: 36px;
+    }
+    .buzzer-status.success {
+      color: #2EC4B6;
+      animation: pulse 0.5s ease infinite alternate;
+    }
+    .buzzer-status.locked {
+      color: #E63946;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+  </style>
+</head>
+<body>
+  <div class="buzzer-box">
+    <div style="background: #FFE8CC; color: #FF9F1C; font-size: 0.82rem; font-weight: 800; padding: 4px 16px; border-radius: 9999px;">
+      Puti-AI 課堂即時搶答器
+    </div>
+
+    <div class="user-info-row">
+      <input type="text" id="seat-no" class="input-field" placeholder="輸入座號 (如：5號)">
+      <input type="text" id="stu-name" class="input-field" placeholder="輸入姓名 (選填)">
+    </div>
+
+    <button class="big-buzzer-btn" id="buzzer-btn">
+      <span class="buzzer-text">搶答！</span>
+      <span class="buzzer-sub">PRESS TO BUZZ</span>
+    </button>
+
+    <div class="buzzer-status" id="status-text">點擊上方大按鈕進行搶答</div>
+    <div style="font-size: 0.75rem; color: #A0AEC0;">大螢幕將依毫秒秒數判定第一順位</div>
+  </div>
+
+  <script>
+    const buzzerBtn = document.getElementById('buzzer-btn');
+    const statusText = document.getElementById('status-text');
+    const seatInput = document.getElementById('seat-no');
+    const nameInput = document.getElementById('stu-name');
+
+    // Persistence
+    seatInput.value = localStorage.getItem('puti_stu_seat') || '';
+    nameInput.value = localStorage.getItem('puti_stu_name') || '';
+
+    seatInput.addEventListener('change', () => localStorage.setItem('puti_stu_seat', seatInput.value.trim()));
+    nameInput.addEventListener('change', () => localStorage.setItem('puti_stu_name', nameInput.value.trim()));
+
+    const channel = new BroadcastChannel('puti_classroom_buzzer');
+
+    // Web Audio Click
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const playBuzzSound = () => {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    };
+
+    let hasBuzzed = false;
+
+    buzzerBtn.addEventListener('click', () => {
+      const seat = seatInput.value.trim() || '某位同學';
+      const name = nameInput.value.trim();
+      const identifier = name ? `${seat} (${name})` : seat;
+      const timestamp = Date.now();
+
+      playBuzzSound();
+
+      // Send to teacher's screen
+      channel.postMessage({
+        type: 'STUDENT_BUZZ',
+        student: identifier,
+        timestamp
+      });
+
+      localStorage.setItem('puti_latest_buzz', JSON.stringify({
+        student: identifier,
+        time: timestamp
+      }));
+
+      statusText.textContent = `🚀 已送出搶答！等待大螢幕裁決...`;
+      statusText.className = 'buzzer-status success';
+      buzzerBtn.style.opacity = '0.7';
+      hasBuzzed = true;
+    });
+
+    channel.onmessage = (e) => {
+      if (e.data.type === 'BUZZER_RESET') {
+        hasBuzzed = false;
+        statusText.textContent = '搶答已重置！隨時準備搶答！';
+        statusText.className = 'buzzer-status';
+        buzzerBtn.style.opacity = '1';
+      } else if (e.data.type === 'BUZZER_WINNER') {
+        if (e.data.winner.includes(seatInput.value.trim())) {
+          statusText.textContent = '🎉 恭喜你搶到了第一順位！請回答！';
+          statusText.className = 'buzzer-status success';
+        } else {
+          statusText.textContent = `太慢了！由【${e.data.winner}】搶得回答權！`;
+          statusText.className = 'buzzer-status locked';
+        }
+      }
+    };
+  </script>
+</body>
+</html>

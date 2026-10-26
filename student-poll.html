@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Puti-AI | 學生手機/平板即時投票端</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Zen Maru Gothic', sans-serif; }
+    body {
+      background: #FFFDF9;
+      color: #2D3748;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #FFF;
+      border-radius: 28px;
+      border: 2px solid rgba(255, 159, 28, 0.2);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 420px;
+      padding: 28px 22px;
+      text-align: center;
+    }
+    .badge {
+      background: #FFE8CC;
+      color: #FF9F1C;
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+    h2 { font-size: 1.35rem; font-weight: 900; margin-bottom: 20px; color: #2D3748; }
+    .options-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .vote-btn {
+      background: #FFF;
+      border: 2px solid #E2E8F0;
+      border-radius: 20px;
+      padding: 16px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      cursor: pointer;
+      color: #2D3748;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .vote-btn:hover, .vote-btn:active {
+      transform: scale(1.03);
+      border-color: #FF9F1C;
+      background: #FFF9F0;
+      color: #FF9F1C;
+    }
+    .vote-btn.selected {
+      background: linear-gradient(135deg, #FF9F1C, #FF7B00);
+      color: #FFF;
+      border-color: #FF9F1C;
+      box-shadow: 0 6px 16px rgba(255, 159, 28, 0.35);
+    }
+    .status-msg {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #2EC4B6;
+      margin-top: 10px;
+      display: none;
+    }
+    .footer {
+      margin-top: 24px;
+      font-size: 0.78rem;
+      color: #A0AEC0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">Puti-AI 課堂即時投票</div>
+    <h2 id="poll-title">載入問題中...</h2>
+    <div class="options-grid" id="options-container"></div>
+    <div class="status-msg" id="status-msg">🎉 投票成功！感謝你的參與！</div>
+    <div class="footer">屏東縣後庄國小黃朝榮老師作品</div>
+  </div>
+
+  <script>
+    const titleEl = document.getElementById('poll-title');
+    const container = document.getElementById('options-container');
+    const statusMsg = document.getElementById('status-msg');
+
+    let currentPoll = null;
+    const channel = new BroadcastChannel('puti_classroom_poll');
+
+    const loadPoll = () => {
+      const saved = localStorage.getItem('puti_active_poll');
+      if (saved) {
+        currentPoll = JSON.parse(saved);
+        render();
+      } else {
+        titleEl.textContent = '老師尚未發佈投票題目';
+      }
+    };
+
+    const render = () => {
+      if (!currentPoll) return;
+      titleEl.textContent = currentPoll.question;
+      container.innerHTML = currentPoll.options.map((opt, i) => `
+        <button class="vote-btn" data-idx="${i}">
+          <span>${opt}</span>
+        </button>
+      `).join('');
+
+      container.querySelectorAll('.vote-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          const idx = parseInt(btn.dataset.idx, 10);
+          
+          // Send vote via BroadcastChannel
+          channel.postMessage({ type: 'VOTE_SUBMITTED', optionIndex: idx });
+
+          // Also write to localStorage
+          localStorage.setItem('puti_poll_latest_vote', JSON.stringify({
+            idx,
+            time: Date.now()
+          }));
+
+          statusMsg.style.display = 'block';
+        });
+      });
+    };
+
+    channel.onmessage = (e) => {
+      if (e.data.type === 'POLL_UPDATED') {
+        currentPoll = e.data.poll;
+        render();
+        statusMsg.style.display = 'none';
+      }
+    };
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'puti_active_poll') {
+        loadPoll();
+      }
+    });
+
+    loadPoll();
+  </script>
+</body>
+</html>

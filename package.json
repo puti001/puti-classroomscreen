@@ -1,0 +1,21 @@
+{
+  "name": "puti-classroomscreen",
+  "version": "1.0.0",
+  "description": "超越 Classroomscreen 的日系暖心自由浮動桌面版課堂工具 - Cloudflare Pages 架構",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public --project-name=puti-classroomscreen"
+  },
+  "keywords": [
+    "classroomscreen",
+    "puti-ai",
+    "education",
+    "teacher-tools",
+    "cloudflare-pages"
+  ],
+  "author": "黃朝榮 (屏東縣後庄國小)",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}
