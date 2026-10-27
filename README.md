@@ -1,6 +1,6 @@
-# Puti-AI | 教室大螢幕 Classroomscreen (自由浮動桌面旗艦版)
+# Puti-AI | 教室大螢幕 (自由浮動桌面旗艦版)
 
-> 超越 Classroomscreen 的自由浮動桌面版現代課堂教學平台，融合日系暖心美學（Zen Maru Gothic、莫蘭迪粉彩調色盤、大圓角玻璃擬態）與 Cloudflare Pages 雲端架構。
+> 專為台灣智慧黑板與大螢幕課堂量身打造的自由浮動桌面教學平台，融合日系暖心美學（Zen Maru Gothic、莫蘭迪粉彩調色盤、大圓角玻璃擬態）與 Cloudflare Pages 雲端架構。
 
 ---
 
