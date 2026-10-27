@@ -548,16 +548,30 @@ body {
 }
 
 
-.symbol-card ruby {
-  ruby-position: over;
-  display: inline-ruby;
+.symbol-card ruby.zy-side {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 1px;
 }
-.symbol-card rt {
-  font-size: 0.52em;
+.symbol-card ruby.zy-side rt {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: 0.45em;
   font-weight: 700;
   color: #7C3AED;
+  line-height: 0.95;
+  letter-spacing: -1px;
   user-select: none;
-  line-height: 1;
+  margin-left: 2px;
+  font-family: var(--font-base, system-ui);
+}
+.work-symbols-container .symbol-name {
+  line-height: 1.35;
+}
+.work-symbols-container .symbol-desc {
+  line-height: 1.35;
 }
 
 .symbol-desc {

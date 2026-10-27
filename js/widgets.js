@@ -2030,32 +2030,32 @@ const ClassroomWidgets = {
         icon: '🤫',
         name: '保持安靜',
         desc: '獨立自主專注思考',
-        rubyName: '<ruby>保<rt>ㄅㄠˇ</rt>持<rt>ㄔˊ</rt>安<rt>ㄢ</rt>靜<rt>ㄐㄧㄥˋ</rt></ruby>',
-        rubyDesc: '<ruby>獨<rt>ㄉㄨˊ</rt>立<rt>ㄌㄧˋ</rt>自<rt>ㄗˋ</rt>主<rt>ㄓㄨˇ</rt>專<rt>ㄓㄨㄢ</rt>注<rt>ㄓㄨˋ</rt>思<rt>ㄙ</rt>考<rt>ㄎㄠˇ</rt></ruby>'
+        rubyName: '<ruby class="zy-side">保<rt>ㄅㄠˇ</rt></ruby><ruby class="zy-side">持<rt>ㄔˊ</rt></ruby><ruby class="zy-side">安<rt>ㄢ</rt></ruby><ruby class="zy-side">靜<rt>ㄐㄧㄥˋ</rt></ruby>',
+        rubyDesc: '<ruby class="zy-side">獨<rt>ㄉㄨˊ</rt></ruby><ruby class="zy-side">立<rt>ㄌㄧˋ</rt></ruby><ruby class="zy-side">自<rt>ㄗˋ</rt></ruby><ruby class="zy-side">主<rt>ㄓㄨˇ</rt></ruby><ruby class="zy-side">專<rt>ㄓㄨㄢ</rt></ruby><ruby class="zy-side">注<rt>ㄓㄨˋ</rt></ruby><ruby class="zy-side">思<rt>ㄙ</rt></ruby><ruby class="zy-side">考<rt>ㄎㄠˇ</rt></ruby>'
       },
       {
         id: 'whisper',
         icon: '👂',
         name: '輕聲細語',
         desc: '相鄰同學悄悄交換意見',
-        rubyName: '<ruby>輕<rt>ㄑㄧㄥ</rt>聲<rt>ㄕㄥ</rt>細<rt>ㄒㄧˋ</rt>語<rt>ㄩˇ</rt></ruby>',
-        rubyDesc: '<ruby>相<rt>ㄒㄧㄤ</rt>鄰<rt>ㄌㄧㄣˊ</rt>同<rt>ㄊㄨㄥˊ</rt>學<rt>ㄒㄩㄝˊ</rt>悄<rt>ㄑㄧㄠˇ</rt>悄<rt>ㄑㄧㄠˇ</rt>交<rt>ㄐㄧㄠ</rt>換<rt>ㄏㄨㄢˋ</rt>意<rt>ㄧˋ</rt>見<rt>ㄐㄧㄢˋ</rt></ruby>'
+        rubyName: '<ruby class="zy-side">輕<rt>ㄑㄧㄥ</rt></ruby><ruby class="zy-side">聲<rt>ㄕㄥ</rt></ruby><ruby class="zy-side">細<rt>ㄒㄧˋ</rt></ruby><ruby class="zy-side">語<rt>ㄩˇ</rt></ruby>',
+        rubyDesc: '<ruby class="zy-side">相<rt>ㄒㄧㄤ</rt></ruby><ruby class="zy-side">鄰<rt>ㄌㄧㄣˊ</rt></ruby><ruby class="zy-side">同<rt>ㄊㄨㄥˊ</rt></ruby><ruby class="zy-side">學<rt>ㄒㄩㄝˊ</rt></ruby><ruby class="zy-side">悄<rt>ㄑㄧㄠˇ</rt></ruby><ruby class="zy-side">悄<rt>ㄑㄧㄠˇ</rt></ruby><ruby class="zy-side">交<rt>ㄐㄧㄠ</rt></ruby><ruby class="zy-side">換<rt>ㄏㄨㄢˋ</rt></ruby><ruby class="zy-side">意<rt>ㄧˋ</rt></ruby><ruby class="zy-side">見<rt>ㄐㄧㄢˋ</rt></ruby>'
       },
       {
         id: 'group',
         icon: '🤝',
         name: '小組合作',
         desc: '同組夥伴熱烈討論交流',
-        rubyName: '<ruby>小<rt>ㄒㄧㄠˇ</rt>組<rt>ㄗㄨˇ</rt>合<rt>ㄏㄜˊ</rt>作<rt>ㄗㄨㄛˋ</rt></ruby>',
-        rubyDesc: '<ruby>同<rt>ㄊㄨㄥˊ</rt>組<rt>ㄗㄨˇ</rt>夥<rt>ㄏㄨㄛˇ</rt>伴<rt>ㄅㄢˋ</rt>熱<rt>ㄖㄜˋ</rt>烈<rt>ㄌㄧㄝˋ</rt>討<rt>ㄊㄠˇ</rt>論<rt>ㄌㄨㄣˋ</rt>交<rt>ㄐㄧㄠ</rt>流<rt>ㄌㄧㄡˊ</rt></ruby>'
+        rubyName: '<ruby class="zy-side">小<rt>ㄒㄧㄠˇ</rt></ruby><ruby class="zy-side">組<rt>ㄗㄨˇ</rt></ruby><ruby class="zy-side">合<rt>ㄏㄜˊ</rt></ruby><ruby class="zy-side">作<rt>ㄗㄨㄛˋ</rt></ruby>',
+        rubyDesc: '<ruby class="zy-side">同<rt>ㄊㄨㄥˊ</rt></ruby><ruby class="zy-side">組<rt>ㄗㄨˇ</rt></ruby><ruby class="zy-side">夥<rt>ㄏㄨㄛˇ</rt></ruby><ruby class="zy-side">伴<rt>ㄅㄢˋ</rt></ruby><ruby class="zy-side">熱<rt>ㄖㄜˋ</rt></ruby><ruby class="zy-side">烈<rt>ㄌㄧㄝˋ</rt></ruby><ruby class="zy-side">討<rt>ㄊㄠˇ</rt></ruby><ruby class="zy-side">論<rt>ㄌㄨㄣˋ</rt></ruby><ruby class="zy-side">交<rt>ㄐㄧㄠ</rt></ruby><ruby class="zy-side">流<rt>ㄌㄧㄡˊ</rt></ruby>'
       },
       {
         id: 'class',
         icon: '📢',
         name: '全班發表',
         desc: '安靜聆聽他人發言分享',
-        rubyName: '<ruby>全<rt>ㄑㄩㄢˊ</rt>班<rt>ㄅㄢ</rt>發<rt>ㄈㄚ</rt>表<rt>ㄅㄧㄠˇ</rt></ruby>',
-        rubyDesc: '<ruby>安<rt>ㄢ</rt>靜<rt>ㄐㄧㄥˋ</rt>聆<rt>ㄌㄧㄥˊ</rt>聽<rt>ㄊㄧㄥ</rt>他<rt>ㄊㄚ</rt>人<rt>ㄖㄣˊ</rt>發<rt>ㄈㄚ</rt>言<rt>ㄧㄢˊ</rt>分<rt>ㄈㄣ</rt>享<rt>ㄒㄧㄤˇ</rt></ruby>'
+        rubyName: '<ruby class="zy-side">全<rt>ㄑㄩㄢˊ</rt></ruby><ruby class="zy-side">班<rt>ㄅㄢ</rt></ruby><ruby class="zy-side">發<rt>ㄈㄚ</rt></ruby><ruby class="zy-side">表<rt>ㄅㄧㄠˇ</rt></ruby>',
+        rubyDesc: '<ruby class="zy-side">安<rt>ㄢ</rt></ruby><ruby class="zy-side">靜<rt>ㄐㄧㄥˋ</rt></ruby><ruby class="zy-side">聆<rt>ㄌㄧㄥˊ</rt></ruby><ruby class="zy-side">聽<rt>ㄊㄧㄥ</rt></ruby><ruby class="zy-side">他<rt>ㄊㄚ</rt></ruby><ruby class="zy-side">人<rt>ㄖㄣˊ</rt></ruby><ruby class="zy-side">發<rt>ㄈㄚ</rt></ruby><ruby class="zy-side">言<rt>ㄧㄢˊ</rt></ruby><ruby class="zy-side">分<rt>ㄈㄣ</rt></ruby><ruby class="zy-side">享<rt>ㄒㄧㄤˇ</rt></ruby>'
       }
     ];
     const content = `
@@ -2846,41 +2846,196 @@ const ClassroomWidgets = {
 
   spawnWebcam(wm) {
     let stream = null;
+    let mirrored = false;
+    let isFrozen = false;
+    const room = localStorage.getItem('puti_classroom_room') || 'C8888';
+
     const content = `
-      <div class="webcam-container">
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <select id="webcam-device-select" style="flex: 1; padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); outline: none; font-size: 0.82rem; font-weight: 700;">
+      <div class="webcam-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
+        <!-- Top Controls Bar -->
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+          <select id="webcam-device-select" style="flex: 1; min-width: 140px; height: 32px; padding: 2px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); outline: none; font-size: 0.82rem; font-weight: 700; background: #FFF;">
             <option value="">預設鏡頭 / 實物投影機</option>
           </select>
-          <button class="action-btn-secondary" id="webcam-mirror-btn" style="height: 32px; font-size: 0.78rem;"><i class="fa-solid fa-arrows-left-right"></i> 鏡像</button>
+          <button class="action-btn-secondary" id="webcam-mirror-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; flex: 0 0 auto;" title="左右翻轉鏡像">
+            <i class="fa-solid fa-arrows-left-right"></i> 鏡像
+          </button>
+          <button class="action-btn-secondary" id="webcam-snap-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; flex: 0 0 auto;" title="拍照定格 / 另存為圖片">
+            <i class="fa-solid fa-camera"></i> 定格截圖
+          </button>
+          <button class="action-btn-secondary" id="webcam-mobile-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; flex: 0 0 auto; font-weight: 800;" title="使用手機相機當作無線實物投影機">
+            <i class="fa-solid fa-mobile-screen"></i> 手機投影
+          </button>
         </div>
-        <div class="media-frame-wrapper"><video id="webcam-video" autoplay playsinline style="transform: scaleX(-1);"></video></div>
-        <button class="action-btn-main" id="webcam-toggle-btn" style="height: 34px; font-size: 0.82rem;"><i class="fa-solid fa-video"></i> 開啟鏡頭</button>
+
+        <!-- Video Frame Area (Preserves aspect ratio, never squashed) -->
+        <div class="webcam-video-box" style="flex: 1; background: #0F172A; border-radius: var(--radius-sm); overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; min-height: 220px;">
+          <video id="webcam-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; display: block; background: #000;"></video>
+          <canvas id="webcam-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;"></canvas>
+          <div id="webcam-empty-tip" style="position: absolute; color: #94A3B8; font-size: 0.9rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;">
+            <i class="fa-solid fa-camera-retro" style="font-size: 2.2rem; color: #475569;"></i>
+            <span>尚未開啟鏡頭，點擊下方「開啟鏡頭」或「手機投影」</span>
+          </div>
+          <div id="webcam-freeze-badge" style="display: none; position: absolute; top: 10px; left: 10px; background: rgba(220, 38, 38, 0.9); color: #FFF; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+            ⏸️ 畫面已定格
+          </div>
+        </div>
+
+        <!-- Bottom Controls Bar (Fixed height, no giant button) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div style="font-size: 0.78rem; color: #64748B; font-weight: 700;">
+            💡 提示：支援 USB 實物投影機、外接視訊鏡頭或手機無線串流
+          </div>
+          <button id="webcam-toggle-btn" style="height: 34px; padding: 0 18px; font-size: 0.85rem; font-weight: 800; border: none; border-radius: var(--radius-pill); background: linear-gradient(135deg, #FF9F1C, #FF7B00); color: #FFF; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(255,159,28,0.3); flex: 0 0 auto; transition: all 0.2s;">
+            <i class="fa-solid fa-video"></i> 開啟鏡頭
+          </button>
+        </div>
       </div>
     `;
+
     wm.createWindow({
-      title: '實物投影 / 鏡頭', icon: 'fa-camera', iconColor: '#0077B6', width: 440, height: 360, type: 'webcam', contentHtml: content,
+      title: '實物投影 / 鏡頭', icon: 'fa-camera', iconColor: '#0077B6', width: 560, height: 440, minWidth: 380, minHeight: 320, type: 'webcam', contentHtml: content,
       onInit: (el) => {
-        const video = el.querySelector('#webcam-video'), toggleBtn = el.querySelector('#webcam-toggle-btn'), mirrorBtn = el.querySelector('#webcam-mirror-btn'), deviceSelect = el.querySelector('#webcam-device-select');
-        let mirrored = true;
+        const video = el.querySelector('#webcam-video');
+        const canvas = el.querySelector('#webcam-canvas');
+        const emptyTip = el.querySelector('#webcam-empty-tip');
+        const freezeBadge = el.querySelector('#webcam-freeze-badge');
+        const toggleBtn = el.querySelector('#webcam-toggle-btn');
+        const mirrorBtn = el.querySelector('#webcam-mirror-btn');
+        const snapBtn = el.querySelector('#webcam-snap-btn');
+        const mobileBtn = el.querySelector('#webcam-mobile-btn');
+        const deviceSelect = el.querySelector('#webcam-device-select');
+
+        // Enumerate devices
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices().then(devices => {
             const vds = devices.filter(d => d.kind === 'videoinput');
-            if (vds.length > 1) deviceSelect.innerHTML = vds.map((d, i) => `<option value="${d.deviceId}">${d.label || `攝影機 ${i+1}`}</option>`).join('');
+            if (vds.length > 0) {
+              deviceSelect.innerHTML = vds.map((d, i) => `<option value="${d.deviceId}">${d.label || `攝影機 ${i+1}`}</option>`).join('');
+            }
           }).catch(console.warn);
         }
+
         const start = async () => {
           try {
             const id = deviceSelect.value;
-            stream = await navigator.mediaDevices.getUserMedia({ video: id ? { deviceId: { exact: id } } : true });
-            video.srcObject = stream; toggleBtn.innerHTML = '<i class="fa-solid fa-stop"></i> 關閉鏡頭'; toggleBtn.style.background = 'linear-gradient(135deg, #FF4757, #E84118)';
-          } catch(e) { alert('⚠️ 無法存取相機鏡頭！請確認瀏覽器網址列已允許相機權限，或檢查相機是否已被其他程式佔用。'); }
+            const constraints = {
+              video: id ? { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1920 }, height: { ideal: 1080 } }
+            };
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            emptyTip.style.display = 'none';
+            canvas.style.display = 'none';
+            video.style.display = 'block';
+            isFrozen = false;
+            freezeBadge.style.display = 'none';
+            toggleBtn.innerHTML = '<i class="fa-solid fa-stop"></i> 關閉鏡頭';
+            toggleBtn.style.background = '#EF4444';
+            toggleBtn.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.35)';
+          } catch(e) {
+            alert('⚠️ 無法存取相機鏡頭！請確認瀏覽器網址列已允許相機權限，或檢查鏡頭是否已被其他程式佔用。');
+          }
         };
-        const stop = () => { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } video.srcObject = null; toggleBtn.innerHTML = '<i class="fa-solid fa-video"></i> 開啟鏡頭'; toggleBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)'; };
-        toggleBtn.addEventListener('click', () => { if (stream) stop(); else start(); });
-        mirrorBtn.addEventListener('click', () => { mirrored = !mirrored; video.style.transform = mirrored ? 'scaleX(-1)' : 'scaleX(1)'; });
+
+        const stop = () => {
+          if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+          }
+          video.srcObject = null;
+          emptyTip.style.display = 'flex';
+          canvas.style.display = 'none';
+          video.style.display = 'block';
+          isFrozen = false;
+          freezeBadge.style.display = 'none';
+          toggleBtn.innerHTML = '<i class="fa-solid fa-video"></i> 開啟鏡頭';
+          toggleBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)';
+          toggleBtn.style.boxShadow = '0 2px 8px rgba(255, 159, 28, 0.3)';
+        };
+
+        toggleBtn.addEventListener('click', () => {
+          if (stream) stop(); else start();
+          window.soundEngine.playPop();
+        });
+
+        mirrorBtn.addEventListener('click', () => {
+          mirrored = !mirrored;
+          const transformVal = mirrored ? 'scaleX(-1)' : 'scaleX(1)';
+          video.style.transform = transformVal;
+          canvas.style.transform = transformVal;
+          window.soundEngine.playTick();
+        });
+
+        // Freeze / Snapshot
+        snapBtn.addEventListener('click', () => {
+          if (!stream && !isFrozen) {
+            alert('請先點擊「開啟鏡頭」後再進行定格截圖！');
+            return;
+          }
+          if (isFrozen) {
+            // Unfreeze
+            isFrozen = false;
+            canvas.style.display = 'none';
+            video.style.display = 'block';
+            freezeBadge.style.display = 'none';
+            snapBtn.innerHTML = '<i class="fa-solid fa-camera"></i> 定格截圖';
+          } else {
+            // Freeze
+            isFrozen = true;
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'block';
+            video.style.display = 'none';
+            freezeBadge.style.display = 'block';
+            snapBtn.innerHTML = '<i class="fa-solid fa-play"></i> 恢復即時';
+            window.soundEngine.playApplause();
+          }
+        });
+
+        // Mobile Camera Wireless Projection
+        mobileBtn.addEventListener('click', () => {
+          const origin = window.location.origin;
+          const mobileUrl = origin + (origin.includes('github.io') ? '/puti-classroomscreen' : '') + '/mobile-cam.html?room=' + room;
+          if (typeof window.openQRLightbox === 'function') {
+            window.openQRLightbox('📱 手機無線實物投影機', mobileUrl, `請用手機掃描 QR Code，即可將手機後鏡頭當作無線實物投影機，巡堂對準學生作業即時投影至此大螢幕！`);
+          } else {
+            prompt('請用手機開啟以下連結（或掃描 QR 碼）：', mobileUrl);
+          }
+          window.soundEngine.playBell();
+        });
+
+        // Listen for mobile camera snapshots / photos over realtimeEngine
+        if (window.realtimeEngine) {
+          window.realtimeEngine.subscribe('webcam/snapshot', (data) => {
+            if (data && data.imageUrl) {
+              const img = new Image();
+              img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                canvas.style.display = 'block';
+                video.style.display = 'none';
+                emptyTip.style.display = 'none';
+                isFrozen = true;
+                freezeBadge.innerHTML = '📱 來自手機作業投影';
+                freezeBadge.style.display = 'block';
+                snapBtn.innerHTML = '<i class="fa-solid fa-play"></i> 關閉定格';
+                window.soundEngine.playSuccess();
+              };
+              img.src = data.imageUrl;
+            }
+          });
+        }
       },
-      onClose: () => { if (stream) stream.getTracks().forEach(t => t.stop()); }
+      onClose: () => {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+          stream = null;
+        }
+      }
     });
   },
 
