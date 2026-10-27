@@ -32,6 +32,124 @@ window.openQRLightbox = (title, url, desc) => {
   modal.onclick = (e) => { if (e.target === modal) close(); };
 };
 
+// =========================================================================
+// Puti-AI Universal Zhuyin Engine (繁體中文通用注音與排版引擎)
+// =========================================================================
+window.PutiZhuyin = {
+  pinyinToZhuyin(rawPinyin) {
+    if (!rawPinyin) return '';
+    let p = rawPinyin.toLowerCase();
+
+    // 1. 抓取聲調
+    let tone = '';
+    if (/[āēīōūǖ]/.test(p)) tone = '';
+    else if (/[áéíóúǘ]/.test(p)) tone = 'ˊ';
+    else if (/[ǎěǐǒǔǚ]/.test(p)) tone = 'ˇ';
+    else if (/[àèìòùǜ]/.test(p)) tone = 'ˋ';
+    else if (/[1-5]/.test(p)) {
+      const m = p.match(/([1-5])/);
+      const num = m ? m[1] : '';
+      tone = num === '1' ? '' : num === '2' ? 'ˊ' : num === '3' ? 'ˇ' : num === '4' ? 'ˋ' : '˙';
+      p = p.replace(/[1-5]/g, '');
+    }
+
+    // 2. 還原為無聲調字母
+    p = p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ü/g, 'v');
+
+    // 特殊整音直接轉換
+    const wholeMap = {
+      'zhi': 'ㄓ', 'chi': 'ㄔ', 'shi': 'ㄕ', 'ri': 'ㄖ',
+      'zi': 'ㄗ', 'ci': 'ㄘ', 'si': 'ㄙ',
+      'yi': 'ㄧ', 'wu': 'ㄨ', 'yu': 'ㄩ',
+      'ye': 'ㄧㄝ', 'yue': 'ㄩㄝ', 'yuan': 'ㄩㄢ',
+      'yin': 'ㄧㄣ', 'yun': 'ㄩㄣ', 'ying': 'ㄧㄥ'
+    };
+    if (wholeMap[p]) return wholeMap[p] + tone;
+
+    // 3. 聲母表 (長者優先)
+    const initials = [
+      ['zh', 'ㄓ'], ['ch', 'ㄔ'], ['sh', 'ㄕ'],
+      ['b', 'ㄅ'], ['p', 'ㄆ'], ['m', 'ㄇ'], ['f', 'ㄈ'],
+      ['d', 'ㄉ'], ['t', 'ㄊ'], ['n', 'ㄋ'], ['l', 'ㄌ'],
+      ['g', 'ㄍ'], ['k', 'ㄎ'], ['h', 'ㄏ'],
+      ['j', 'ㄐ'], ['q', 'ㄑ'], ['x', 'ㄒ'],
+      ['r', 'ㄖ'], ['z', 'ㄗ'], ['c', 'ㄘ'], ['s', 'ㄙ'],
+      ['w', 'ㄨ'], ['y', 'ㄧ']
+    ];
+
+    let initZh = '';
+    let finalPart = p;
+    for (const [ini, zh] of initials) {
+      if (p.startsWith(ini)) {
+        initZh = zh;
+        finalPart = p.substring(ini.length);
+        break;
+      }
+    }
+
+    // 4. 韻母表 (長者優先)
+    const finals = [
+      ['iang', 'ㄧㄤ'], ['iong', 'ㄩㄥ'], ['uang', 'ㄨㄤ'],
+      ['ang', 'ㄤ'], ['eng', 'ㄥ'], ['ing', 'ㄧㄥ'], ['ong', 'ㄨㄥ'],
+      ['ian', 'ㄧㄢ'], ['iao', 'ㄧㄠ'], ['uai', 'ㄨㄞ'], ['uan', 'ㄨㄢ'],
+      ['van', 'ㄩㄢ'], ['uen', 'ㄨㄣ'],
+      ['ai', 'ㄞ'], ['ei', 'ㄟ'], ['ao', 'ㄠ'], ['ou', 'ㄡ'],
+      ['an', 'ㄢ'], ['en', 'ㄣ'], ['in', 'ㄧㄣ'], ['un', 'ㄨㄣ'],
+      ['vn', 'ㄩㄣ'], ['ia', 'ㄧㄚ'], ['ie', 'ㄧㄝ'], ['ua', 'ㄨㄚ'],
+      ['uo', 'ㄨㄛ'], ['ve', 'ㄩㄝ'], ['ue', 'ㄩㄝ'], ['ui', 'ㄨㄟ'],
+      ['iu', 'ㄧㄡ'],
+      ['a', 'ㄚ'], ['o', 'ㄛ'], ['e', 'ㄜ'], ['i', 'ㄧ'],
+      ['u', 'ㄨ'], ['v', 'ㄩ'], ['er', 'ㄦ']
+    ];
+
+    let finalZh = '';
+    for (const [fin, zh] of finals) {
+      if (finalPart === fin) {
+        finalZh = zh;
+        break;
+      }
+    }
+
+    if (!initZh && !finalZh) return p + tone;
+    return initZh + finalZh + tone;
+  },
+
+  textToRubyHtml(text) {
+    if (!text) return '';
+    if (typeof pinyinPro === 'undefined' || !pinyinPro.pinyin) {
+      // 降級純文字
+      return text.replace(/\n/g, '<br>');
+    }
+    try {
+      const items = pinyinPro.pinyin(text, { type: 'all' });
+      return items.map(item => {
+        const char = item.origin;
+        if (!item.pinyin || !char.trim()) {
+          return char === '\n' ? '<br>' : `<span class="zy-plain">${char}</span>`;
+        }
+        const zhuyin = this.pinyinToZhuyin(item.pinyin);
+        let tone = '';
+        let letters = '';
+        for (const ch of zhuyin) {
+          if ('ˊˇˋ˙'.includes(ch)) {
+            tone = ch;
+          } else {
+            letters += ch;
+          }
+        }
+        const lettersHtml = Array.from(letters).map(s => `<span class="zy-letter">${s}</span>`).join('');
+        const topToneHtml = tone === '˙' ? '<span class="zy-top-tone">˙</span>' : '';
+        const toneClass = tone === 'ˊ' ? 'tone-2' : tone === 'ˇ' ? 'tone-3' : tone === 'ˋ' ? 'tone-4' : '';
+        const sideToneHtml = (tone && tone !== '˙') ? `<span class="zy-side-tone ${toneClass}">${tone}</span>` : '';
+        return `<ruby class="zy-box"><rb class="zy-char">${char}</rb><rt class="zy-rt">${topToneHtml}<div class="zy-body"><div class="zy-letters">${lettersHtml}</div>${sideToneHtml}</div></rt></ruby>`;
+      }).join('');
+    } catch (e) {
+      console.warn('Zhuyin parse error:', e);
+      return text.replace(/\n/g, '<br>');
+    }
+  }
+};
+
 const ClassroomWidgets = {
   // Registry metadata for the "More Tools" drawer/modal
   registry: [
@@ -108,6 +226,7 @@ const ClassroomWidgets = {
     let customTags = JSON.parse(localStorage.getItem('puti_hw_custom_tags') || '[]');
 
     let fontSize = 1.05;
+    let isZhuyin = localStorage.getItem('puti_hw_zhuyin') === 'true';
 
     const content = `
       <div class="homework-container">
@@ -119,6 +238,9 @@ const ClassroomWidgets = {
             <span style="font-size: 0.85rem; color: #718096; font-weight: 700;">(${dateStr} ${dayStr})</span>
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="scale-btn" id="hw-zhuyin-btn" style="font-size: 0.74rem; font-weight: 800; padding: 1px 8px; border-radius: 6px; border: 1.5px solid ${isZhuyin ? '#8B5CF6' : '#CBD5E1'}; color: ${isZhuyin ? '#6D28D9' : '#64748B'}; background: ${isZhuyin ? '#F5F3FF' : '#FFF'}; cursor: pointer; transition: all 0.2s;" title="切換低年級注音抄寫模式">
+              ㄅ 注音模式
+            </button>
             <div class="font-scale-controls">
               <button class="font-scale-btn" id="hw-font-minus" title="縮小字體">A-</button>
               <button class="font-scale-btn" id="hw-font-reset" title="重置字體">A</button>
@@ -146,24 +268,29 @@ const ClassroomWidgets = {
           <div class="hw-row">
             <div class="hw-subject-badge" style="background: #FFE3E3; color: #E03131;">國語</div>
             <input type="text" class="hw-content-input" id="hw-chinese" value="${savedData.chinese}" placeholder="點此輸入國語作業...">
+            <div class="hw-zhuyin-display" id="hw-zy-chinese" style="display: none; font-size: ${fontSize}rem;" title="點擊即可快速編輯"></div>
           </div>
           <div class="hw-row">
             <div class="hw-subject-badge" style="background: #E7F5FF; color: #1971C2;">數學</div>
             <input type="text" class="hw-content-input" id="hw-math" value="${savedData.math}" placeholder="點此輸入數學作業...">
+            <div class="hw-zhuyin-display" id="hw-zy-math" style="display: none; font-size: ${fontSize}rem;" title="點擊即可快速編輯"></div>
           </div>
           <div class="hw-row">
             <div class="hw-subject-badge" style="background: #FFF3BF; color: #F59F00;">英語</div>
             <input type="text" class="hw-content-input" id="hw-english" value="${savedData.english}" placeholder="點此輸入英語作業...">
+            <div class="hw-zhuyin-display" id="hw-zy-english" style="display: none; font-size: ${fontSize}rem;" title="點擊即可快速編輯"></div>
           </div>
           <div class="hw-row">
             <div class="hw-subject-badge" style="background: #EBFBEE; color: #2F9E44;">其他</div>
             <input type="text" class="hw-content-input" id="hw-other" value="${savedData.other}" placeholder="點此輸入其他科目/社團任務...">
+            <div class="hw-zhuyin-display" id="hw-zy-other" style="display: none; font-size: ${fontSize}rem;" title="點擊即可快速編輯"></div>
           </div>
           <div class="hw-memo-box">
             <div style="font-weight: 800; font-size: 0.85rem; color: #D9480F; display: flex; align-items: center; gap: 4px;">
               <i class="fa-solid fa-triangle-exclamation"></i> 重要通知與帶物叮嚀：
             </div>
             <input type="text" class="hw-content-input" id="hw-memo" value="${savedData.memo}" placeholder="點此輸入明日帶物或家長叮嚀...">
+            <div class="hw-zhuyin-memo-display" id="hw-zy-memo" style="display: none; font-size: ${fontSize}rem;" title="點擊即可快速編輯"></div>
           </div>
         </div>
       </div>
@@ -173,8 +300,8 @@ const ClassroomWidgets = {
       title: '家庭聯絡簿',
       icon: 'fa-book-open-reader',
       iconColor: '#3A86FF',
-      width: 480,
-      height: 440,
+      width: 500,
+      height: 460,
       type: 'contact',
       contentHtml: content,
       onInit: (el) => {
@@ -184,13 +311,27 @@ const ClassroomWidgets = {
         const otherIn = el.querySelector('#hw-other');
         const memoIn = el.querySelector('#hw-memo');
         const copyBtn = el.querySelector('#hw-copy-btn');
+        const zhuyinBtn = el.querySelector('#hw-zhuyin-btn');
         const tagsContainer = el.querySelector('#hw-tags-chip-list');
         const addTagBtn = el.querySelector('#hw-add-tag-btn');
-        const inputs = [chineseIn, mathIn, englishIn, otherIn, memoIn];
 
-        let activeInput = chineseIn; // 預設選中第一欄
+        const zyChinese = el.querySelector('#hw-zy-chinese');
+        const zyMath = el.querySelector('#hw-zy-math');
+        const zyEnglish = el.querySelector('#hw-zy-english');
+        const zyOther = el.querySelector('#hw-zy-other');
+        const zyMemo = el.querySelector('#hw-zy-memo');
 
-        inputs.forEach(input => {
+        const fieldPairs = [
+          { input: chineseIn, display: zyChinese },
+          { input: mathIn, display: zyMath },
+          { input: englishIn, display: zyEnglish },
+          { input: otherIn, display: zyOther },
+          { input: memoIn, display: zyMemo }
+        ];
+
+        let activeInput = chineseIn;
+
+        fieldPairs.forEach(({ input, display }) => {
           input.addEventListener('focus', () => {
             activeInput = input;
             input.style.borderColor = '#3A86FF';
@@ -199,7 +340,63 @@ const ClassroomWidgets = {
           input.addEventListener('blur', () => {
             input.style.borderColor = '';
             input.style.boxShadow = '';
+            if (isZhuyin) {
+              updateZhuyinViews();
+              input.style.display = 'none';
+              display.style.display = display === zyMemo ? 'block' : 'flex';
+            }
           });
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && isZhuyin) {
+              input.blur();
+            }
+          });
+
+          // Click zhuyin view to edit that single field
+          display.addEventListener('click', () => {
+            display.style.display = 'none';
+            input.style.display = 'block';
+            input.focus();
+            window.soundEngine.playTick();
+          });
+        });
+
+        const updateZhuyinViews = () => {
+          fieldPairs.forEach(({ input, display }) => {
+            const val = input.value.trim();
+            if (val) {
+              display.innerHTML = window.PutiZhuyin.textToRubyHtml(val);
+            } else {
+              display.innerHTML = '<span style="color: #94A3B8; font-style: italic;">（未填寫）</span>';
+            }
+          });
+        };
+
+        const applyZhuyinMode = () => {
+          zhuyinBtn.style.border = isZhuyin ? '1.5px solid #8B5CF6' : '1.5px solid #CBD5E1';
+          zhuyinBtn.style.color = isZhuyin ? '#6D28D9' : '#64748B';
+          zhuyinBtn.style.background = isZhuyin ? '#F5F3FF' : '#FFF';
+          zhuyinBtn.innerHTML = isZhuyin ? '<i class="fa-solid fa-check"></i> ㄅ 注音開啟' : 'ㄅ 注音模式';
+
+          if (isZhuyin) {
+            updateZhuyinViews();
+            fieldPairs.forEach(({ input, display }) => {
+              input.style.display = 'none';
+              display.style.display = display === zyMemo ? 'block' : 'flex';
+            });
+          } else {
+            fieldPairs.forEach(({ input, display }) => {
+              display.style.display = 'none';
+              input.style.display = 'block';
+            });
+          }
+        };
+
+        zhuyinBtn.addEventListener('click', () => {
+          isZhuyin = !isZhuyin;
+          localStorage.setItem('puti_hw_zhuyin', isZhuyin);
+          applyZhuyinMode();
+          window.soundEngine.playPop();
         });
 
         const save = () => {
@@ -211,9 +408,10 @@ const ClassroomWidgets = {
             memo: memoIn.value.trim()
           };
           localStorage.setItem('puti_hw_data', JSON.stringify(data));
+          if (isZhuyin) updateZhuyinViews();
         };
 
-        inputs.forEach(input => input.addEventListener('input', save));
+        fieldPairs.forEach(({ input }) => input.addEventListener('input', save));
 
         // Render Tag Chips
         const renderTags = () => {
@@ -310,7 +508,10 @@ const ClassroomWidgets = {
 
         // Font scaling
         const applyFontSize = () => {
-          inputs.forEach(input => input.style.fontSize = fontSize + 'rem');
+          fieldPairs.forEach(({ input, display }) => {
+            input.style.fontSize = fontSize + 'rem';
+            display.style.fontSize = fontSize + 'rem';
+          });
         };
 
         el.querySelector('#hw-font-plus').addEventListener('click', () => {
@@ -335,13 +536,14 @@ const ClassroomWidgets = {
             setTimeout(() => { copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> 複製'; }, 1800);
           });
         });
+
+        // Initialize Zhuyin state
+        if (isZhuyin) {
+          applyZhuyinMode();
+        }
       }
     });
   },
-
-  // =========================================================================
-  // 2. 課堂搶答神器 (Classroom Quick Buzzer)
-  // =========================================================================
   spawnBuzzer(wm) {
     let buzzerState = 'STANDBY'; // 'STANDBY' | 'ACTIVE' | 'LOCKED'
     let buzzStartTime = 0;
@@ -858,23 +1060,31 @@ const ClassroomWidgets = {
   // 4. 課堂大公告板 (Announcement Board - 支援字級無級放大)
   // =========================================================================
   spawnAnnouncement(wm) {
-    let fontSize = 1.1;
+    let fontSize = 1.15;
+    let isZhuyin = localStorage.getItem('puti_ann_zhuyin') === 'true';
+    const savedText = localStorage.getItem('puti_ann_text') || '1. 國語習作寫至第 45 頁\n2. 數學習作單元四練習\n3. 明天請攜帶彩色筆與剪刀';
 
     const content = `
       <div style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
           <div style="font-weight: 800; font-size: 1.15rem; color: var(--primary); display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-bullhorn"></i>
             <span contenteditable="true">📢 今日黑板公告與作業</span>
           </div>
-          <div class="font-scale-controls">
-            <button class="font-scale-btn" id="ann-font-minus" title="縮小字體">A-</button>
-            <button class="font-scale-btn" id="ann-font-reset" title="重置字體">A</button>
-            <button class="font-scale-btn" id="ann-font-plus" title="放大字體">A+</button>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="scale-btn" id="ann-zhuyin-btn" style="font-size: 0.74rem; font-weight: 800; padding: 1px 8px; border-radius: 6px; border: 1.5px solid ${isZhuyin ? '#8B5CF6' : '#CBD5E1'}; color: ${isZhuyin ? '#6D28D9' : '#64748B'}; background: ${isZhuyin ? '#F5F3FF' : '#FFF'}; cursor: pointer; transition: all 0.2s;" title="切換低年級注音黑板模式">
+              ㄅ 注音模式
+            </button>
+            <div class="font-scale-controls">
+              <button class="font-scale-btn" id="ann-font-minus" title="縮小字體">A-</button>
+              <button class="font-scale-btn" id="ann-font-reset" title="重置字體">A</button>
+              <button class="font-scale-btn" id="ann-font-plus" title="放大字體">A+</button>
+            </div>
           </div>
         </div>
-        <textarea id="ann-textarea" style="flex: 1; border: 2px dashed var(--secondary); border-radius: var(--radius-sm); padding: 12px; font-family: var(--font-main); font-size: ${fontSize}rem; line-height: 1.8; background: #FFFDF9; outline: none; resize: none;"
-          placeholder="1. 國語習作寫至第 45 頁&#10;2. 數學習作單元四練習&#10;3. 明天請攜帶彩色筆與剪刀"></textarea>
+        <textarea id="ann-textarea" style="flex: 1; border: 2px dashed var(--secondary); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-main); font-size: ${fontSize}rem; line-height: 1.8; background: #FFFDF9; outline: none; resize: none;"
+          placeholder="1. 國語習作寫至第 45 頁&#10;2. 數學習作單元四練習&#10;3. 明天請攜帶彩色筆與剪刀">${savedText}</textarea>
+        <div id="ann-zhuyin-box" style="display: none; flex: 1; border: 2px dashed var(--secondary); border-radius: var(--radius-sm); padding: 14px; font-size: ${fontSize}rem; background: #FFFDF9; outline: none; overflow-y: auto; cursor: pointer;" title="點擊切回編輯文字"></div>
       </div>
     `;
 
@@ -882,28 +1092,82 @@ const ClassroomWidgets = {
       title: '課堂公告黑板',
       icon: 'fa-chalkboard',
       iconColor: '#2D3748',
-      width: 440,
-      height: 330,
+      width: 480,
+      height: 360,
       type: 'announcement',
       contentHtml: content,
       onInit: (el) => {
         const textarea = el.querySelector('#ann-textarea');
+        const zhuyinBox = el.querySelector('#ann-zhuyin-box');
+        const zhuyinBtn = el.querySelector('#ann-zhuyin-btn');
+
+        const updateZhuyinView = () => {
+          const text = textarea.value.trim();
+          if (text) {
+            zhuyinBox.innerHTML = window.PutiZhuyin.textToRubyHtml(text);
+          } else {
+            zhuyinBox.innerHTML = '<span style="color: #94A3B8; font-style: italic;">（點此輸入黑板公告或作業）</span>';
+          }
+        };
+
+        const applyZhuyinMode = () => {
+          zhuyinBtn.style.border = isZhuyin ? '1.5px solid #8B5CF6' : '1.5px solid #CBD5E1';
+          zhuyinBtn.style.color = isZhuyin ? '#6D28D9' : '#64748B';
+          zhuyinBtn.style.background = isZhuyin ? '#F5F3FF' : '#FFF';
+          zhuyinBtn.innerHTML = isZhuyin ? '<i class="fa-solid fa-check"></i> ㄅ 注音開啟' : 'ㄅ 注音模式';
+
+          if (isZhuyin) {
+            updateZhuyinView();
+            textarea.style.display = 'none';
+            zhuyinBox.style.display = 'block';
+          } else {
+            zhuyinBox.style.display = 'none';
+            textarea.style.display = 'block';
+            textarea.focus();
+          }
+        };
+
+        textarea.addEventListener('input', () => {
+          localStorage.setItem('puti_ann_text', textarea.value);
+          if (isZhuyin) updateZhuyinView();
+        });
+
+        zhuyinBtn.addEventListener('click', () => {
+          isZhuyin = !isZhuyin;
+          localStorage.setItem('puti_ann_zhuyin', isZhuyin);
+          applyZhuyinMode();
+          window.soundEngine.playPop();
+        });
+
+        zhuyinBox.addEventListener('click', () => {
+          isZhuyin = false;
+          localStorage.setItem('puti_ann_zhuyin', false);
+          applyZhuyinMode();
+          window.soundEngine.playTick();
+        });
+
         el.querySelector('#ann-font-plus').addEventListener('click', () => {
           fontSize = Math.min(2.5, fontSize + 0.2);
           textarea.style.fontSize = fontSize + 'rem';
+          zhuyinBox.style.fontSize = fontSize + 'rem';
         });
         el.querySelector('#ann-font-minus').addEventListener('click', () => {
           fontSize = Math.max(0.85, fontSize - 0.2);
           textarea.style.fontSize = fontSize + 'rem';
+          zhuyinBox.style.fontSize = fontSize + 'rem';
         });
         el.querySelector('#ann-font-reset').addEventListener('click', () => {
-          fontSize = 1.1;
+          fontSize = 1.15;
           textarea.style.fontSize = fontSize + 'rem';
+          zhuyinBox.style.fontSize = fontSize + 'rem';
         });
+
+        if (isZhuyin) {
+          applyZhuyinMode();
+        }
       }
     });
   },
-
   // =========================================================================
   // 5. 課堂即時投票 (Poll - 支援大圖投影 QR Code)
   // =========================================================================

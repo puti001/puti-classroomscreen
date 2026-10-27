@@ -548,19 +548,19 @@ body {
 }
 
 
-/* 台灣國小課本標準注音排版 (原生繁體中文字型，絕不變平橫線、絕無怪異生硬感) */
-.symbol-card ruby.zy-box {
+/* 台灣國小課本標準注音排版 (全站通用，支援課堂符號、聯絡簿、黑板公告) */
+ruby.zy-box {
   display: inline-flex !important;
   align-items: center;
   vertical-align: middle;
   margin: 0 1.5px;
   line-height: 1;
 }
-.symbol-card .zy-char {
+ruby.zy-box .zy-char {
   font-weight: 800;
   line-height: 1.1;
 }
-.symbol-card .zy-rt {
+ruby.zy-box .zy-rt {
   display: inline-flex !important;
   flex-direction: column;
   align-items: center;
@@ -570,7 +570,7 @@ body {
   line-height: 1;
   font-family: "BiauKai", "DFKai-SB", "標楷體", "Noto Sans TC", "Microsoft JhengHei", "微軟正黑體", sans-serif !important;
 }
-.symbol-card .zy-top-tone {
+ruby.zy-box .zy-top-tone {
   display: block;
   font-size: 0.65em;
   line-height: 0.5;
@@ -578,13 +578,13 @@ body {
   color: #4C1D95;
   margin-bottom: 2px;
 }
-.symbol-card .zy-body {
+ruby.zy-box .zy-body {
   display: inline-flex;
   flex-direction: row;
   align-items: flex-end;
   line-height: 1;
 }
-.symbol-card .zy-letters {
+ruby.zy-box .zy-letters {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -594,11 +594,11 @@ body {
   font-weight: 900;
   color: #4C1D95;
 }
-.symbol-card .zy-letter {
+ruby.zy-box .zy-letter {
   display: block;
   line-height: 1;
 }
-.symbol-card .zy-side-tone {
+ruby.zy-box .zy-side-tone {
   display: inline-block;
   font-size: 0.75em;
   line-height: 1;
@@ -606,16 +606,50 @@ body {
   color: #4C1D95;
   margin-left: 1px;
   margin-bottom: 1px;
-  transform: translateY(-1px);
-}
-.symbol-card .zy-side-tone.tone-2 {
   transform: translateY(-2px);
 }
-.symbol-card .zy-side-tone.tone-3 {
-  transform: translateY(-2px);
+.zy-plain {
+  font-weight: 700;
 }
-.symbol-card .zy-side-tone.tone-4 {
-  transform: translateY(-2px);
+.hw-zhuyin-display {
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  line-height: 1.8;
+}
+.hw-zhuyin-display:hover {
+  border-color: #8B5CF6;
+  background: #FAF5FF;
+}
+.hw-zhuyin-memo-display {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #FFF9DB;
+  border: 1.5px solid #FFE066;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 2.1;
+  min-height: 60px;
+}
+.hw-zhuyin-memo-display:hover {
+  border-color: #F59F00;
+  box-shadow: 0 2px 8px rgba(245,159,0,0.15);
+}
+#ann-zhuyin-box {
+  line-height: 2.2;
+  transition: all 0.2s;
+}
+#ann-zhuyin-box:hover {
+  border-color: #8B5CF6;
+  background: #FAF5FF;
 }
 .work-symbols-container .symbol-name {
   line-height: 1.35;
