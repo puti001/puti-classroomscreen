@@ -337,6 +337,7 @@ const ClassroomWidgets = {
     let locked = false;
     let buzzStartTime = Date.now();
     let buzzHistory = [];
+    let buzzFontSize = 1.0; // rem
 
     const teams = [
       { id: 1, name: '第一組', key: '1', color: '#E63946' },
@@ -349,27 +350,51 @@ const ClassroomWidgets = {
 
     const content = `
       <div class="buzzer-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
-        <!-- Status Banner -->
-        <div class="buzzer-status-banner" id="buzz-banner" style="background: #FFF9DB; color: #D9480F; border: 1.5px solid #FFE066; border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; font-size: 0.95rem;">
-          📢 搶答準備中！點擊按鈕、按鍵盤 1~4 或手機掃碼連線
+        <!-- Top Control Bar (Room Code + Font Scale) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #F8F9FA; padding: 6px 10px; border-radius: 10px; border: 1px solid #E9ECEF; flex-wrap: wrap; gap: 4px;">
+          <!-- Room Code Info & Change Button -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.74rem; font-weight: 800; color: #495057;">
+              <i class="fa-solid fa-tower-broadcast" style="color: #FF7B00;"></i> 教室代碼: <strong id="buzz-room-label" style="color: #E8590C; font-family: var(--font-num);">${getRoom()}</strong>
+            </span>
+            <button type="button" class="action-btn-secondary" id="buzz-change-room-btn" style="height: 22px; padding: 0 6px; font-size: 0.68rem;" title="更換教室房間代碼（全國各班獨立隔離，不互相干擾）">
+              <i class="fa-solid fa-arrows-rotate"></i> 換代碼
+            </button>
+          </div>
+
+          <!-- Font Scale Controls (使用者要求：字體放大功能) -->
+          <div class="font-scale-controls" style="display: flex; gap: 3px; align-items: center;">
+            <span style="font-size: 0.72rem; color: #718096; font-weight: bold;"><i class="fa-solid fa-text-height"></i> 字級:</span>
+            <button type="button" class="font-scale-btn" id="buzz-font-minus" style="width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #CED4DA; background: #FFF; cursor: pointer;" title="縮小搶答字級">A-</button>
+            <button type="button" class="font-scale-btn" id="buzz-font-reset" style="width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #CED4DA; background: #FFF; cursor: pointer;" title="預設字級">A</button>
+            <button type="button" class="font-scale-btn" id="buzz-font-plus" style="width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #CED4DA; background: #FFF; cursor: pointer;" title="放大搶答字級">A+</button>
+          </div>
         </div>
 
-        <!-- 4 Teams On-Screen Quick Buzzer Grid -->
-        <div class="buzzer-teams-grid" id="buzz-teams-box" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0;">
+        <!-- Status Banner -->
+        <div class="buzzer-status-banner" id="buzz-banner" style="background: #FFF9DB; color: #D9480F; border: 1.5px solid #FFE066; border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; font-size: 0.95rem; transition: font-size 0.15s ease;">
+          📢 搶答準備中！點擊按鈕、按鍵盤數字 1~4 或手機掃碼連線
+        </div>
+
+        <!-- 4 Teams On-Screen Quick Buzzer Grid (現場觸控 / 鍵盤 1~4 搶答) -->
+        <div style="font-size: 0.72rem; font-weight: 800; color: #718096; display: flex; justify-content: space-between; align-items: center;">
+          <span>👉 現場分組卡片搶答（觸控點選或按鍵盤數字 1 ~ 4）：</span>
+        </div>
+        <div class="buzzer-teams-grid" id="buzz-teams-box" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 2px 0;">
           ${teams.map(t => `
-            <div class="team-buzz-card" data-id="${t.id}" id="buzz-card-${t.id}" style="background: #FFF; border: 2px solid ${t.color}33; border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.15s ease;">
-              <div style="font-size: 1.8rem; color: ${t.color}; margin-bottom: 2px;"><i class="fa-solid fa-bell"></i></div>
-              <div style="font-weight: 900; font-size: 0.95rem; color: #2D3748;">${t.name}</div>
-              <div class="team-buzz-key-badge" style="font-size: 0.7rem; color: #718096; background: #F1F3F5; padding: 2px 6px; border-radius: 4px; margin-top: 4px;">[ ${t.key} ]</div>
+            <div class="team-buzz-card" data-id="${t.id}" id="buzz-card-${t.id}" style="background: #FFF; border: 2px solid ${t.color}33; border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+              <div class="team-buzz-icon" style="font-size: 1.8rem; color: ${t.color}; margin-bottom: 2px;"><i class="fa-solid fa-bell"></i></div>
+              <div class="team-buzz-name" style="font-weight: 900; font-size: 0.95rem; color: #2D3748;">${t.name}</div>
+              <div class="team-buzz-key-badge" style="font-size: 0.7rem; color: #718096; background: #F1F3F5; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: bold;">[ 按鍵 ${t.key} ]</div>
             </div>
           `).join('')}
         </div>
 
-        <!-- Live Online Student Buzzers List (前三名搶答榜) -->
+        <!-- Live Online Student Buzzers List (線上學生手機搶答榜 Top 3) -->
         <div style="flex: 1; background: #FFFDF9; border: 1.5px solid #FFE8CC; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; overflow-y: auto;">
           <div style="font-size: 0.78rem; font-weight: 800; color: #D9480F; margin-bottom: 4px; display: flex; justify-content: space-between;">
-            <span><i class="fa-solid fa-tower-broadcast"></i> 線上即時搶答榜 (毫秒反應時間)：</span>
-            <span style="font-size: 0.72rem; color: #718096;">代碼: <strong>${getRoom()}</strong></span>
+            <span><i class="fa-solid fa-trophy"></i> 線上即時搶答榜 (毫秒反應時間)：</span>
+            <span style="font-size: 0.72rem; color: #718096;">全班平板/手機已連線</span>
           </div>
           <div id="buzz-history-list" style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
             <div style="text-align: center; color: #A0AEC0; font-size: 0.85rem; padding: 16px 0;">尚未有人搶答，點擊「開始搶答」發布訊號</div>
@@ -395,8 +420,8 @@ const ClassroomWidgets = {
       title: '課堂搶答神器',
       icon: 'fa-bell',
       iconColor: '#E63946',
-      width: 480,
-      height: 420,
+      width: 500,
+      height: 460,
       type: 'buzzer',
       contentHtml: content,
       onInit: (el) => {
@@ -406,8 +431,56 @@ const ClassroomWidgets = {
         const qrBtn = el.querySelector('#buzz-qr-btn');
         const cards = el.querySelectorAll('.team-buzz-card');
         const historyList = el.querySelector('#buzz-history-list');
+        const roomLabel = el.querySelector('#buzz-room-label');
+        const changeRoomBtn = el.querySelector('#buzz-change-room-btn');
 
-        const room = getRoom();
+        const fontPlusBtn = el.querySelector('#buzz-font-plus');
+        const fontMinusBtn = el.querySelector('#buzz-font-minus');
+        const fontResetBtn = el.querySelector('#buzz-font-reset');
+
+        let room = getRoom();
+
+        const applyFontSize = () => {
+          banner.style.fontSize = (buzzFontSize * 0.95) + 'rem';
+          el.querySelectorAll('.team-buzz-name').forEach(nameEl => {
+            nameEl.style.fontSize = (buzzFontSize * 0.95) + 'rem';
+          });
+          el.querySelectorAll('.team-buzz-icon').forEach(iconEl => {
+            iconEl.style.fontSize = (buzzFontSize * 1.8) + 'rem';
+          });
+          renderHistory();
+        };
+
+        fontPlusBtn.addEventListener('click', () => {
+          buzzFontSize = Math.min(1.8, buzzFontSize + 0.15);
+          applyFontSize();
+          window.soundEngine.playTick();
+        });
+        fontMinusBtn.addEventListener('click', () => {
+          buzzFontSize = Math.max(0.85, buzzFontSize - 0.15);
+          applyFontSize();
+          window.soundEngine.playTick();
+        });
+        fontResetBtn.addEventListener('click', () => {
+          buzzFontSize = 1.0;
+          applyFontSize();
+          window.soundEngine.playPop();
+        });
+
+        // Change Room Code
+        changeRoomBtn.addEventListener('click', () => {
+          const newRoom = prompt('請輸入自訂教室代碼（例如：PUTI601、CLASS2）：', room);
+          if (newRoom && newRoom.trim()) {
+            room = newRoom.trim().toUpperCase();
+            localStorage.setItem('puti_classroom_room', room);
+            roomLabel.textContent = room;
+            if (window.realtimeEngine) {
+              window.realtimeEngine.room = room;
+              window.realtimeEngine.initMqtt();
+            }
+            alert(`教室代碼已變更為【${room}】！學生重新掃碼即可連線。`);
+          }
+        });
 
         const triggerWinner = (winnerTitle, reactionMs, seatNum = null) => {
           if (locked) return;
@@ -439,12 +512,12 @@ const ClassroomWidgets = {
 
           historyList.innerHTML = buzzHistory.map((h, idx) => `
             <div style="display: flex; justify-content: space-between; align-items: center; background: ${idx === 0 ? '#FFE8CC' : '#FFF'}; border: 1px solid ${idx === 0 ? '#FF922B' : '#E9ECEF'}; padding: 6px 10px; border-radius: 8px;">
-              <div style="font-weight: 800; font-size: 0.88rem; color: #2D3748; display: flex; align-items: center; gap: 6px;">
+              <div style="font-weight: 800; font-size: ${buzzFontSize * 0.9}rem; color: #2D3748; display: flex; align-items: center; gap: 6px;">
                 <span>${idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
                 <span>${h.name}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 0.8rem; font-weight: 800; color: #E8590C; font-family: var(--font-num);">${h.reaction}s</span>
+                <span style="font-size: ${buzzFontSize * 0.85}rem; font-weight: 800; color: #E8590C; font-family: var(--font-num);">${h.reaction}s</span>
                 <button type="button" class="buzz-award-btn" data-name="${h.name}" style="background: #2B8A3E; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer;" title="在個人計分器加 1 分">+1分</button>
               </div>
             </div>
@@ -469,7 +542,7 @@ const ClassroomWidgets = {
           locked = false;
           buzzStartTime = Date.now();
           buzzHistory = [];
-          banner.innerHTML = '📢 搶答準備中！點擊按鈕、按鍵盤 1~4 或手機掃碼連線';
+          banner.innerHTML = '📢 搶答準備中！點擊按鈕、按鍵盤數字 1~4 或手機掃碼連線';
           banner.style.background = '#FFF9DB';
           banner.style.color = '#D9480F';
           banner.style.borderColor = '#FFE066';
@@ -486,7 +559,7 @@ const ClassroomWidgets = {
         startBtn.addEventListener('click', () => {
           resetAll();
           buzzStartTime = Date.now();
-          banner.innerHTML = '🔥 搶答開始！學生請立即按下手機或卡片搶答！';
+          banner.innerHTML = '🔥 搶答開始！學生請立即按下手機、卡片或鍵盤 1~4 搶答！';
           banner.style.background = '#FFE3E3';
           banner.style.color = '#C92A2A';
           banner.style.borderColor = '#FFA8A8';
@@ -518,6 +591,36 @@ const ClassroomWidgets = {
           });
         });
 
+        // Keyboard triggers: 1, 2, 3, 4 (主鍵盤與數字鍵盤皆支援)
+        const keyHandler = (e) => {
+          if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+          const keyMap = {
+            '1': 1, 'Numpad1': 1,
+            '2': 2, 'Numpad2': 2,
+            '3': 3, 'Numpad3': 3,
+            '4': 4, 'Numpad4': 4
+          };
+          const teamId = keyMap[e.key] || keyMap[e.code];
+          if (teamId) {
+            const t = teams.find(item => item.id == teamId);
+            if (t) {
+              const card = el.querySelector(`#buzz-card-${teamId}`);
+              if (card) {
+                card.style.transform = 'scale(0.92)';
+                setTimeout(() => { if (card) card.style.transform = ''; }, 160);
+              }
+              const reaction = ((Date.now() - buzzStartTime) / 1000).toFixed(2);
+              if (!buzzHistory.some(h => h.name === t.name)) {
+                buzzHistory.push({ name: t.name, reaction: reaction });
+                renderHistory();
+              }
+              triggerWinner(t.name, reaction);
+            }
+          }
+        };
+
+        window.addEventListener('keydown', keyHandler);
+
         // Realtime Listener for Mobile Students
         if (window.realtimeEngine) {
           window.realtimeEngine.subscribe('buzzer/buzz', (data) => {
@@ -531,6 +634,9 @@ const ClassroomWidgets = {
             }
           });
         }
+      },
+      onClose: () => {
+        // cleanup key handler if needed
       }
     });
   },
