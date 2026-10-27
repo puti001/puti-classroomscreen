@@ -54,66 +54,79 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'edtech-default',
       name: '教育科技 (預設)',
       url: './assets/wallpapers/back.png',
-      thumb: './assets/wallpapers/back.png'
+      thumb: './assets/wallpapers/back_thumb.png'
     },
     {
       id: 'blackboard',
       name: '黑板',
-      url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_blackboard.jpg',
+      thumb: './assets/wallpapers/bg_blackboard_thumb.jpg'
     },
     {
       id: 'seaside',
       name: '海邊',
-      url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_seaside.jpg',
+      thumb: './assets/wallpapers/bg_seaside_thumb.jpg'
     },
     {
       id: 'sky',
       name: '天空',
-      url: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_sky.jpg',
+      thumb: './assets/wallpapers/bg_sky_thumb.jpg'
     },
     {
       id: 'grassland',
       name: '草原',
-      url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_grassland.jpg',
+      thumb: './assets/wallpapers/bg_grassland_thumb.jpg'
     },
     {
       id: 'flower-sea',
       name: '花海',
-      url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_flower.jpg',
+      thumb: './assets/wallpapers/bg_flower_thumb.jpg'
     },
     {
       id: 'cosmos',
       name: '宇宙',
-      url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_cosmos.jpg',
+      thumb: './assets/wallpapers/bg_cosmos_thumb.jpg'
     },
     {
       id: 'milkyway',
       name: '銀河',
-      url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_milkyway.jpg',
+      thumb: './assets/wallpapers/bg_milkyway_thumb.jpg'
     },
     {
       id: 'mountain',
       name: '山岳',
-      url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_mountain.jpg',
+      thumb: './assets/wallpapers/bg_mountain_thumb.jpg'
     },
     {
       id: 'ocean-world',
       name: '海洋世界',
-      url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=300&q=60'
+      url: './assets/wallpapers/bg_ocean.jpg',
+      thumb: './assets/wallpapers/bg_ocean_thumb.jpg'
+    },
+    {
+      id: 'forest',
+      name: '晨光森林',
+      url: './assets/wallpapers/bg_forest.jpg',
+      thumb: './assets/wallpapers/bg_forest_thumb.jpg'
+    },
+    {
+      id: 'cozy-room',
+      name: '溫馨教室',
+      url: './assets/wallpapers/bg_cozy.jpg',
+      thumb: './assets/wallpapers/bg_cozy_thumb.jpg'
     }
   ];
 
   let savedWp = localStorage.getItem('puti_cs_wallpaper');
-  if (!savedWp || savedWp.includes('#FFE8CC')) {
+  // 若未指定、為舊漸層、或為舊的外部 Unsplash 連結，皆自動導向新版第一預設「教育科技」
+  if (!savedWp || savedWp.includes('#FFE8CC') || savedWp.includes('unsplash.com')) {
     savedWp = wallpapers[0].url;
     localStorage.setItem('puti_cs_wallpaper', savedWp);
   }
