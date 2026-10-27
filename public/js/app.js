@@ -166,8 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const openWpModalBtn = document.getElementById('btn-open-wallpaper');
 
   wpGrid.innerHTML = wallpapers.map(wp => `
-    <div class="wallpaper-thumb ${wp.url === currentWallpaper ? 'active' : ''}" data-url="${wp.url}"
-      style="background: ${wp.isGradient ? wp.thumb : `url("${wp.thumb}") center/cover`};">
+    <div class="wallpaper-thumb ${wp.url === currentWallpaper ? 'active' : ''}" data-url="${wp.url}" title="${wp.name}">
+      <img src="${wp.thumb}" alt="${wp.name}" class="wallpaper-thumb-img" loading="lazy" />
       <span>${wp.name}</span>
     </div>
   `).join('');
