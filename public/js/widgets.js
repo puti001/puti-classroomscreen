@@ -3309,35 +3309,41 @@ const ClassroomWidgets = {
     let examScale = 1.0;
 
     const content = `
-      <div class="exam-timer-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px; font-family: var(--font-base, system-ui);">
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 8px;">
+      <div class="exam-timer-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px; font-family: var(--font-base, system-ui); user-select: none;">
+        <!-- 頂部切換與工具列 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 8px; flex-shrink: 0;">
           <div style="display: flex; gap: 6px;">
-            <button class="exam-day-btn active" data-day="day1" style="padding: 4px 12px; border-radius: 6px; font-weight: bold; border: 1px solid #ddd; background: var(--theme-color, #4A90E2); color: #fff; cursor: pointer;">第一天</button>
-            <button class="exam-day-btn" data-day="day2" style="padding: 4px 12px; border-radius: 6px; font-weight: bold; border: 1px solid #ddd; background: #fff; color: #333; cursor: pointer;">第二天</button>
+            <button class="exam-day-btn active" data-day="day1" style="padding: 4px 12px; border-radius: 6px; font-weight: bold; border: 1px solid #ddd; background: var(--theme-color, #4A90E2); color: #fff; cursor: pointer; transition: all 0.2s;">第一天</button>
+            <button class="exam-day-btn" data-day="day2" style="padding: 4px 12px; border-radius: 6px; font-weight: bold; border: 1px solid #ddd; background: #fff; color: #333; cursor: pointer; transition: all 0.2s;">第二天</button>
           </div>
+          
+          <!-- 字級縮放與設定 -->
           <div style="display: flex; gap: 4px; align-items: center;">
             <span style="font-size: 0.8rem; color: #666; margin-right: 2px;">字級:</span>
             <button id="exam-zoom-out" title="縮小字體" style="width: 28px; height: 26px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">A-</button>
             <button id="exam-zoom-reset" title="重置字體" style="padding: 0 6px; height: 26px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">100%</button>
             <button id="exam-zoom-in" title="放大字體" style="width: 28px; height: 26px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">A+</button>
             <div style="width: 1px; height: 18px; background: #ddd; margin: 0 4px;"></div>
-            <button id="exam-edit-btn" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #ccc; background: #fff; font-size: 0.8rem; cursor: pointer;">⚙️ 編輯日程</button>
+            <button id="exam-edit-btn" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #ccc; background: #fff; font-size: 0.8rem; cursor: pointer;">⚙️ 編輯考程</button>
           </div>
         </div>
 
-        <div id="exam-hero-card" style="flex: 1; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; position: relative; overflow: hidden;">
-          <div id="exam-status-badge" style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; background: #3b82f6; margin-bottom: 4px;">
+        <!-- 當前核心焦點看板 (科目極大化、時間等寬防抖動) -->
+        <div id="exam-hero-card" style="flex: 1; min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; position: relative; overflow: hidden;">
+          <div id="exam-status-badge" style="display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; background: #3b82f6; margin-bottom: 6px; transition: background 0.3s;">
             正在準備中
           </div>
           
-          <div id="exam-subject-display" style="font-size: 2.6rem; font-weight: 900; letter-spacing: 2px; color: #f8fafc; text-shadow: 0 2px 8px rgba(0,0,0,0.4); line-height: 1.1; margin: 2px 0;">
+          <!-- 超大科目文字 (可縮放，預設大醒目) -->
+          <div id="exam-subject-display" style="font-size: 2.8rem; font-weight: 900; letter-spacing: 3px; color: #f8fafc; text-shadow: 0 2px 10px rgba(0,0,0,0.5); line-height: 1.1; margin: 4px 0; transition: font-size 0.2s;">
             --
           </div>
-          <div id="exam-period-info" style="font-size: 0.95rem; color: #94a3b8; font-weight: 600; margin-bottom: 4px;">
+          <div id="exam-period-info" style="font-size: 0.95rem; color: #94a3b8; font-weight: 600; margin-bottom: 6px;">
             --:-- ~ --:--
           </div>
 
-          <div id="exam-countdown" style="font-family: 'Zen Maru Gothic', 'Cascadia Code', Consolas, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; font-size: 3.6rem; font-weight: 800; color: #38bdf8; letter-spacing: 2px; text-shadow: 0 0 16px rgba(56, 189, 248, 0.4); min-width: 220px; display: inline-block;">
+          <!-- 超大倒數計時數字 (等寬防抖: tabular-nums + Cascadia Code/Consolas/monospace) -->
+          <div id="exam-countdown" style="font-family: 'Zen Maru Gothic', 'Cascadia Code', Consolas, Monaco, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; font-size: 3.8rem; font-weight: 800; color: #38bdf8; letter-spacing: 2px; text-shadow: 0 0 16px rgba(56, 189, 248, 0.4); min-width: 240px; display: inline-block; transition: font-size 0.2s;">
             00:00
           </div>
           
@@ -3346,13 +3352,15 @@ const ClassroomWidgets = {
           </div>
         </div>
 
-        <div id="exam-schedule-list" style="max-height: 140px; overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;">
+        <!-- 考試節次時程列表 -->
+        <div id="exam-schedule-list" style="max-height: 130px; overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px; flex-shrink: 0;">
         </div>
 
+        <!-- 編輯考程對話框 -->
         <div id="exam-edit-modal" style="display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.98); z-index: 10; padding: 12px; flex-direction: column; gap: 8px; border-radius: 12px;">
-          <div style="font-weight: bold; font-size: 1rem; color: #1e293b; display: flex; justify-content: space-between;">
+          <div style="font-weight: bold; font-size: 1rem; color: #1e293b; display: flex; justify-content: space-between; align-items: center;">
             <span>編輯 <span id="modal-day-title">第一天</span> 考程</span>
-            <button id="modal-close-btn" style="border: none; background: transparent; cursor: pointer; font-size: 1.1rem;">✕</button>
+            <button id="modal-close-btn" style="border: none; background: transparent; cursor: pointer; font-size: 1.2rem; line-height: 1;">✕</button>
           </div>
           <div style="font-size: 0.75rem; color: #64748b;">格式：節次, 科目, 起始時間, 結束時間 (每行一節，24小時制)</div>
           <textarea id="modal-schedule-text" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-family: monospace; font-size: 0.85rem; resize: none;"></textarea>
@@ -3364,219 +3372,237 @@ const ClassroomWidgets = {
       </div>
     `;
 
-    const win = wm.createWindow({
+    wm.createWindow({
       title: '考試日程計時器',
+      icon: 'fa-clock',
+      iconColor: '#3B82F6',
       width: 440,
-      height: 380,
-      content: content
-    });
+      height: 420,
+      minWidth: 340,
+      minHeight: 320,
+      type: 'exam-timer',
+      contentHtml: content,
+      onInit: (winEl, winObj) => {
+        const body = winEl.querySelector('.window-body') || winEl;
+        const subjectDisplay = body.querySelector('#exam-subject-display');
+        const countdownDisplay = body.querySelector('#exam-countdown');
+        const statusBadge = body.querySelector('#exam-status-badge');
+        const periodInfo = body.querySelector('#exam-period-info');
+        const currentTimeDisplay = body.querySelector('#exam-current-time');
+        const scheduleList = body.querySelector('#exam-schedule-list');
+        const dayBtns = body.querySelectorAll('.exam-day-btn');
+        const editBtn = body.querySelector('#exam-edit-btn');
+        const editModal = body.querySelector('#exam-edit-modal');
+        const modalCloseBtn = body.querySelector('#modal-close-btn');
+        const modalSaveBtn = body.querySelector('#modal-save-btn');
+        const modalResetBtn = body.querySelector('#modal-reset-btn');
+        const modalText = body.querySelector('#modal-schedule-text');
+        const modalDayTitle = body.querySelector('#modal-day-title');
+        const zoomInBtn = body.querySelector('#exam-zoom-in');
+        const zoomOutBtn = body.querySelector('#exam-zoom-out');
+        const zoomResetBtn = body.querySelector('#exam-zoom-reset');
 
-    const body = win.element.querySelector('.window-body');
-    const heroCard = body.querySelector('#exam-hero-card');
-    const subjectDisplay = body.querySelector('#exam-subject-display');
-    const countdownDisplay = body.querySelector('#exam-countdown');
-    const statusBadge = body.querySelector('#exam-status-badge');
-    const periodInfo = body.querySelector('#exam-period-info');
-    const currentTimeDisplay = body.querySelector('#exam-current-time');
-    const scheduleList = body.querySelector('#exam-schedule-list');
-    const dayBtns = body.querySelectorAll('.exam-day-btn');
-    const editBtn = body.querySelector('#exam-edit-btn');
-    const editModal = body.querySelector('#exam-edit-modal');
-    const modalCloseBtn = body.querySelector('#modal-close-btn');
-    const modalSaveBtn = body.querySelector('#modal-save-btn');
-    const modalResetBtn = body.querySelector('#modal-reset-btn');
-    const modalText = body.querySelector('#modal-schedule-text');
-    const modalDayTitle = body.querySelector('#modal-day-title');
-    const zoomInBtn = body.querySelector('#exam-zoom-in');
-    const zoomOutBtn = body.querySelector('#exam-zoom-out');
-    const zoomResetBtn = body.querySelector('#exam-zoom-reset');
-
-    function applyZoom(scale) {
-      examScale = Math.min(1.8, Math.max(0.7, scale));
-      subjectDisplay.style.fontSize = `${(2.6 * examScale).toFixed(2)}rem`;
-      countdownDisplay.style.fontSize = `${(3.6 * examScale).toFixed(2)}rem`;
-      zoomResetBtn.textContent = `${Math.round(examScale * 100)}%`;
-    }
-
-    zoomInBtn.addEventListener('click', () => applyZoom(examScale + 0.15));
-    zoomOutBtn.addEventListener('click', () => applyZoom(examScale - 0.15));
-    zoomResetBtn.addEventListener('click', () => applyZoom(1.0));
-
-    function renderScheduleList() {
-      const items = scheduleData[activeDay] || [];
-      scheduleList.innerHTML = '';
-      items.forEach((item, idx) => {
-        const row = document.createElement('div');
-        row.className = `exam-row exam-row-${idx}`;
-        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; border-radius: 4px;';
-        row.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-weight: 600; color: #64748b; font-size: 0.85rem;">${item.period}</span>
-            <span style="font-weight: bold; color: #1e293b; font-size: 1.15rem;">${item.subject}</span>
-          </div>
-          <div style="font-family: monospace; font-variant-numeric: tabular-nums; color: #475569; font-size: 0.9rem;">
-            ${item.start} ~ ${item.end}
-          </div>
-        `;
-        scheduleList.appendChild(row);
-      });
-    }
-
-    function timeToMinutes(str) {
-      const [h, m] = str.split(':').map(Number);
-      return h * 60 + m;
-    }
-
-    function timeToSeconds(str) {
-      const [h, m] = str.split(':').map(Number);
-      return h * 3600 + m * 60;
-    }
-
-    function updateExamStatus() {
-      const now = new Date();
-      const currentH = String(now.getHours()).padStart(2, '0');
-      const currentM = String(now.getMinutes()).padStart(2, '0');
-      const currentS = String(now.getSeconds()).padStart(2, '0');
-      currentTimeDisplay.textContent = `${currentH}:${currentM}:${currentS}`;
-
-      const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      const items = scheduleData[activeDay] || [];
-
-      let currentExam = null;
-      let nextExam = null;
-
-      for (let i = 0; i < items.length; i++) {
-        const startSec = timeToSeconds(items[i].start);
-        const endSec = timeToSeconds(items[i].end);
-
-        if (nowSec >= startSec && nowSec < endSec) {
-          currentExam = { ...items[i], startSec, endSec, index: i };
-          break;
-        } else if (nowSec < startSec) {
-          if (!nextExam) {
-            nextExam = { ...items[i], startSec, endSec, index: i };
-          }
-        }
-      }
-
-      const rows = scheduleList.querySelectorAll('.exam-row');
-      rows.forEach(r => {
-        r.style.background = 'transparent';
-        r.style.boxShadow = 'none';
-      });
-
-      if (currentExam) {
-        const remainSec = currentExam.endSec - nowSec;
-        const mm = String(Math.floor(remainSec / 60)).padStart(2, '0');
-        const ss = String(remainSec % 60).padStart(2, '0');
-
-        statusBadge.textContent = '● 考試進行中';
-        statusBadge.style.background = '#ef4444';
-        subjectDisplay.textContent = currentExam.subject;
-        periodInfo.textContent = `${currentExam.period} (${currentExam.start} ~ ${currentExam.end})`;
-        countdownDisplay.textContent = `${mm}:${ss}`;
-
-        if (remainSec <= 300) {
-          countdownDisplay.style.color = '#f87171';
-        } else {
-          countdownDisplay.style.color = '#38bdf8';
+        function applyZoom(scale) {
+          examScale = Math.min(1.8, Math.max(0.7, scale));
+          if (subjectDisplay) subjectDisplay.style.fontSize = `${(2.8 * examScale).toFixed(2)}rem`;
+          if (countdownDisplay) countdownDisplay.style.fontSize = `${(3.8 * examScale).toFixed(2)}rem`;
+          if (zoomResetBtn) zoomResetBtn.textContent = `${Math.round(examScale * 100)}%`;
         }
 
-        if (rows[currentExam.index]) {
-          rows[currentExam.index].style.background = '#fee2e2';
-          rows[currentExam.index].style.fontWeight = 'bold';
-        }
-      } else if (nextExam) {
-        const waitSec = nextExam.startSec - nowSec;
-        const mm = String(Math.floor(waitSec / 60)).padStart(2, '0');
-        const ss = String(waitSec % 60).padStart(2, '0');
+        if (zoomInBtn) zoomInBtn.addEventListener('click', () => applyZoom(examScale + 0.15));
+        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => applyZoom(examScale - 0.15));
+        if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => applyZoom(1.0));
 
-        statusBadge.textContent = '⏳ 距離下節考試開始';
-        statusBadge.style.background = '#f59e0b';
-        subjectDisplay.textContent = `即將考：${nextExam.subject}`;
-        periodInfo.textContent = `${nextExam.period} (${nextExam.start} ~ ${nextExam.end})`;
-        countdownDisplay.textContent = `${mm}:${ss}`;
-        countdownDisplay.style.color = '#fbbf24';
-
-        if (rows[nextExam.index]) {
-          rows[nextExam.index].style.background = '#fef3c7';
-        }
-      } else {
-        statusBadge.textContent = '✓ 今日考試已結束';
-        statusBadge.style.background = '#10b981';
-        subjectDisplay.textContent = '今日日程完畢';
-        periodInfo.textContent = '辛苦了！請好好休息';
-        countdownDisplay.textContent = '00:00';
-        countdownDisplay.style.color = '#94a3b8';
-      }
-    }
-
-    dayBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        dayBtns.forEach(b => {
-          b.classList.remove('active');
-          b.style.background = '#fff';
-          b.style.color = '#333';
-        });
-        btn.classList.add('active');
-        btn.style.background = 'var(--theme-color, #4A90E2)';
-        btn.style.color = '#fff';
-        activeDay = btn.getAttribute('data-day');
-        renderScheduleList();
-        updateExamStatus();
-      });
-    });
-
-    editBtn.addEventListener('click', () => {
-      modalDayTitle.textContent = activeDay === 'day1' ? '第一天' : '第二天';
-      const items = scheduleData[activeDay] || [];
-      modalText.value = items.map(it => `${it.period}, ${it.subject}, ${it.start}, ${it.end}`).join('\n');
-      editModal.style.display = 'flex';
-    });
-
-    modalCloseBtn.addEventListener('click', () => {
-      editModal.style.display = 'none';
-    });
-
-    modalResetBtn.addEventListener('click', () => {
-      scheduleData[activeDay] = JSON.parse(JSON.stringify(defaultExamSchedule[activeDay]));
-      localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
-      renderScheduleList();
-      editModal.style.display = 'none';
-      updateExamStatus();
-    });
-
-    modalSaveBtn.addEventListener('click', () => {
-      const lines = modalText.value.trim().split('\n');
-      const parsed = [];
-      for (const line of lines) {
-        const parts = line.split(',').map(s => s.trim());
-        if (parts.length >= 4) {
-          parsed.push({
-            period: parts[0],
-            subject: parts[1],
-            start: parts[2],
-            end: parts[3]
+        function renderScheduleList() {
+          if (!scheduleList) return;
+          const items = scheduleData[activeDay] || [];
+          scheduleList.innerHTML = '';
+          items.forEach((item, idx) => {
+            const row = document.createElement('div');
+            row.className = `exam-row exam-row-${idx}`;
+            row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; border-radius: 4px;';
+            row.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 600; color: #64748b; font-size: 0.85rem;">${item.period}</span>
+                <span style="font-weight: 800; color: #1e293b; font-size: 1.15rem;">${item.subject}</span>
+              </div>
+              <div style="font-family: monospace; font-variant-numeric: tabular-nums; color: #475569; font-size: 0.9rem;">
+                ${item.start} ~ ${item.end}
+              </div>
+            `;
+            scheduleList.appendChild(row);
           });
         }
-      }
-      if (parsed.length > 0) {
-        scheduleData[activeDay] = parsed;
-        localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
+
+        function timeToSeconds(str) {
+          const [h, m] = str.split(':').map(Number);
+          return h * 3600 + m * 60;
+        }
+
+        function updateExamStatus() {
+          const now = new Date();
+          const currentH = String(now.getHours()).padStart(2, '0');
+          const currentM = String(now.getMinutes()).padStart(2, '0');
+          const currentS = String(now.getSeconds()).padStart(2, '0');
+          if (currentTimeDisplay) currentTimeDisplay.textContent = `${currentH}:${currentM}:${currentS}`;
+
+          const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+          const items = scheduleData[activeDay] || [];
+
+          let currentExam = null;
+          let nextExam = null;
+
+          for (let i = 0; i < items.length; i++) {
+            const startSec = timeToSeconds(items[i].start);
+            const endSec = timeToSeconds(items[i].end);
+
+            if (nowSec >= startSec && nowSec < endSec) {
+              currentExam = { ...items[i], startSec, endSec, index: i };
+              break;
+            } else if (nowSec < startSec) {
+              if (!nextExam) {
+                nextExam = { ...items[i], startSec, endSec, index: i };
+              }
+            }
+          }
+
+          if (scheduleList) {
+            const rows = scheduleList.querySelectorAll('.exam-row');
+            rows.forEach(r => {
+              r.style.background = 'transparent';
+              r.style.boxShadow = 'none';
+            });
+
+            if (currentExam) {
+              const remainSec = currentExam.endSec - nowSec;
+              const mm = String(Math.floor(remainSec / 60)).padStart(2, '0');
+              const ss = String(remainSec % 60).padStart(2, '0');
+
+              if (statusBadge) {
+                statusBadge.textContent = '● 考試進行中';
+                statusBadge.style.background = '#ef4444';
+              }
+              if (subjectDisplay) subjectDisplay.textContent = currentExam.subject;
+              if (periodInfo) periodInfo.textContent = `${currentExam.period} (${currentExam.start} ~ ${currentExam.end})`;
+              if (countdownDisplay) {
+                countdownDisplay.textContent = `${mm}:${ss}`;
+                countdownDisplay.style.color = remainSec <= 300 ? '#f87171' : '#38bdf8';
+              }
+
+              if (rows[currentExam.index]) {
+                rows[currentExam.index].style.background = '#fee2e2';
+                rows[currentExam.index].style.fontWeight = 'bold';
+              }
+            } else if (nextExam) {
+              const waitSec = nextExam.startSec - nowSec;
+              const mm = String(Math.floor(waitSec / 60)).padStart(2, '0');
+              const ss = String(waitSec % 60).padStart(2, '0');
+
+              if (statusBadge) {
+                statusBadge.textContent = '⏳ 距離下節考試開始';
+                statusBadge.style.background = '#f59e0b';
+              }
+              if (subjectDisplay) subjectDisplay.textContent = `即將考：${nextExam.subject}`;
+              if (periodInfo) periodInfo.textContent = `${nextExam.period} (${nextExam.start} ~ ${nextExam.end})`;
+              if (countdownDisplay) {
+                countdownDisplay.textContent = `${mm}:${ss}`;
+                countdownDisplay.style.color = '#fbbf24';
+              }
+
+              if (rows[nextExam.index]) {
+                rows[nextExam.index].style.background = '#fef3c7';
+              }
+            } else {
+              if (statusBadge) {
+                statusBadge.textContent = '✓ 今日考試已結束';
+                statusBadge.style.background = '#10b981';
+              }
+              if (subjectDisplay) subjectDisplay.textContent = '今日日程完畢';
+              if (periodInfo) periodInfo.textContent = '辛苦了！請好好休息';
+              if (countdownDisplay) {
+                countdownDisplay.textContent = '00:00';
+                countdownDisplay.style.color = '#94a3b8';
+              }
+            }
+          }
+        }
+
+        dayBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            dayBtns.forEach(b => {
+              b.classList.remove('active');
+              b.style.background = '#fff';
+              b.style.color = '#333';
+            });
+            btn.classList.add('active');
+            btn.style.background = 'var(--theme-color, #4A90E2)';
+            btn.style.color = '#fff';
+            activeDay = btn.getAttribute('data-day');
+            renderScheduleList();
+            updateExamStatus();
+          });
+        });
+
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            if (modalDayTitle) modalDayTitle.textContent = activeDay === 'day1' ? '第一天' : '第二天';
+            const items = scheduleData[activeDay] || [];
+            if (modalText) modalText.value = items.map(it => `${it.period}, ${it.subject}, ${it.start}, ${it.end}`).join('\n');
+            if (editModal) editModal.style.display = 'flex';
+          });
+        }
+
+        if (modalCloseBtn) {
+          modalCloseBtn.addEventListener('click', () => {
+            if (editModal) editModal.style.display = 'none';
+          });
+        }
+
+        if (modalResetBtn) {
+          modalResetBtn.addEventListener('click', () => {
+            scheduleData[activeDay] = JSON.parse(JSON.stringify(defaultExamSchedule[activeDay]));
+            localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
+            renderScheduleList();
+            if (editModal) editModal.style.display = 'none';
+            updateExamStatus();
+          });
+        }
+
+        if (modalSaveBtn) {
+          modalSaveBtn.addEventListener('click', () => {
+            if (!modalText) return;
+            const lines = modalText.value.trim().split('\n');
+            const parsed = [];
+            for (const line of lines) {
+              const parts = line.split(',').map(s => s.trim());
+              if (parts.length >= 4) {
+                parsed.push({
+                  period: parts[0],
+                  subject: parts[1],
+                  start: parts[2],
+                  end: parts[3]
+                });
+              }
+            }
+            if (parsed.length > 0) {
+              scheduleData[activeDay] = parsed;
+              localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
+              renderScheduleList();
+              updateExamStatus();
+              if (editModal) editModal.style.display = 'none';
+            } else {
+              alert('格式有誤，請確認包含：節次, 科目, 起始時間, 結束時間');
+            }
+          });
+        }
+
         renderScheduleList();
         updateExamStatus();
-        editModal.style.display = 'none';
-      } else {
-        alert('格式有誤，請確認包含：節次, 科目, 起始時間, 結束時間');
+        timerInterval = setInterval(updateExamStatus, 1000);
+      },
+      onClose: () => {
+        if (timerInterval) clearInterval(timerInterval);
       }
-    });
-
-    renderScheduleList();
-    updateExamStatus();
-    timerInterval = setInterval(updateExamStatus, 1000);
-
-    win.on('close', () => {
-      if (timerInterval) clearInterval(timerInterval);
     });
   }
 
