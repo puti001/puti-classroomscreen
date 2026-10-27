@@ -403,7 +403,7 @@ const ClassroomWidgets = {
         <div style="flex: 1; background: #FFFDF9; border: 1.5px solid #FFE8CC; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; overflow-y: auto;">
           <div style="font-size: 0.78rem; font-weight: 800; color: #D9480F; margin-bottom: 4px; display: flex; justify-content: space-between;">
             <span><i class="fa-solid fa-trophy"></i> 線上即時搶答榜 (毫秒反應時間)：</span>
-            <span style="font-size: 0.72rem; color: #718096;">全班平板/手機已連線</span>
+            <span id="buzz-online-status" style="font-size: 0.72rem; color: #475569; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-signal" style="color: #10b981;"></i> <span id="buzz-status-desc">等待學生連線...</span> (<strong id="buzz-online-num" style="color: #2563EB;">0</strong> 人已就緒)</span>
           </div>
           <div id="buzz-history-list" style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
             <div style="text-align: center; color: #A0AEC0; font-size: 0.85rem; padding: 16px 0;">尚未有人搶答，點擊「開始搶答」發布訊號</div>
@@ -440,6 +440,19 @@ const ClassroomWidgets = {
         const qrBtn = el.querySelector('#buzz-qr-btn');
         const cards = el.querySelectorAll('.team-buzz-card');
         const historyList = el.querySelector('#buzz-history-list');
+        const onlineDesc = el.querySelector('#buzz-status-desc');
+        const onlineNum = el.querySelector('#buzz-online-num');
+        const connectedStudents = new Set();
+
+        const updateOnlineDisplay = () => {
+          if (!onlineNum) return;
+          onlineNum.textContent = connectedStudents.size;
+          if (connectedStudents.size === 0) {
+            if (onlineDesc) onlineDesc.textContent = '等待學生連線...';
+          } else {
+            if (onlineDesc) onlineDesc.textContent = '學生已連線';
+          }
+        };
         const roomLabel = el.querySelector('#buzz-room-label');
         const changeRoomBtn = el.querySelector('#buzz-change-room-btn');
 
@@ -1601,23 +1614,24 @@ const ClassroomWidgets = {
     let totalSeconds = 300, remainingSeconds = 300, timerInterval = null, isRunning = false;
     const radius = 68, circumference = 2 * Math.PI * radius;
     const content = `
-      <div class="timer-container">
+      <div class="timer-container" style="position: relative;">
         <div class="timer-circle-wrap">
           <svg class="timer-svg" viewBox="0 0 170 170">
             <circle class="timer-bg-circle" cx="85" cy="85" r="${radius}"></circle>
             <circle class="timer-progress-circle" id="t-prog" cx="85" cy="85" r="${radius}" stroke-dasharray="${circumference}" stroke-dashoffset="0"></circle>
           </svg>
-          <div class="timer-digits-overlay">
+          <div class="timer-digits-overlay" id="t-digits-box" style="cursor: pointer;" title="點擊直接修改自訂時間">
             <div class="timer-digits" id="t-digits">05:00</div>
             <div class="timer-millis" id="t-sub">5 分鐘</div>
           </div>
         </div>
-        <div class="timer-preset-row" id="t-presets">
+        <div class="timer-preset-row" id="t-presets" style="flex-wrap: wrap; justify-content: center;">
           <button class="preset-chip" data-sec="30">+30秒</button>
           <button class="preset-chip" data-sec="60">+1分</button>
           <button class="preset-chip" data-sec="180">+3分</button>
           <button class="preset-chip" data-sec="300">+5分</button>
           <button class="preset-chip" data-sec="600">+10分</button>
+          <button class="preset-chip" id="t-custom-btn" style="border: 1px dashed #FF7B00; color: #E8590C; font-weight: 800;"><i class="fa-solid fa-pen"></i> 自訂</button>
         </div>
         <div class="timer-controls-row">
           <button class="action-btn-main" id="t-start-btn"><i class="fa-solid fa-play"></i> 開始</button>
@@ -1635,16 +1649,29 @@ const ClassroomWidgets = {
       contentHtml: content,
       onInit: (el) => {
         const digitsEl = el.querySelector('#t-digits');
+        const digitsBox = el.querySelector('#t-digits-box');
         const subEl = el.querySelector('#t-sub');
         const progCircle = el.querySelector('#t-prog');
         const startBtn = el.querySelector('#t-start-btn');
         const resetBtn = el.querySelector('#t-reset-btn');
         const presetsRow = el.querySelector('#t-presets');
+        const customBtn = el.querySelector('#t-custom-btn');
 
         const formatTime = (secs) => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+        
+        // 修正文字不一致：精準顯示 X分Y秒，避免5分30秒被無條件進位為6分鐘
+        const formatSubText = (secs) => {
+          if (secs <= 0) return '時間到！';
+          const m = Math.floor(secs / 60);
+          const s = secs % 60;
+          if (m > 0 && s > 0) return `${m} 分 ${s} 秒`;
+          if (m > 0) return `${m} 分鐘`;
+          return `${s} 秒`;
+        };
+
         const render = () => {
           digitsEl.textContent = formatTime(remainingSeconds);
-          subEl.textContent = `${Math.ceil(remainingSeconds / 60)} 分鐘`;
+          subEl.textContent = formatSubText(remainingSeconds);
           const percent = totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
           progCircle.style.strokeDashoffset = circumference * (1 - percent);
           progCircle.style.stroke = remainingSeconds <= 10 ? '#FF4757' : '#FF9F1C';
@@ -1657,8 +1684,38 @@ const ClassroomWidgets = {
           startBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)';
         };
 
+        const askCustomTime = () => {
+          stop();
+          const currentM = Math.floor(remainingSeconds / 60);
+          const currentS = remainingSeconds % 60;
+          const currentStr = currentS > 0 ? `${currentM}:${String(currentS).padStart(2, '0')}` : `${currentM}`;
+          const input = prompt('請輸入自訂倒數時間（例如 2.5 或 7 或 07:30）：', currentStr);
+          if (input === null) return;
+          const trimmed = input.trim();
+          let sec = 0;
+          if (trimmed.includes(':')) {
+            const [m, s] = trimmed.split(':').map(Number);
+            if (!isNaN(m) && !isNaN(s)) sec = m * 60 + s;
+          } else {
+            const num = parseFloat(trimmed);
+            if (!isNaN(num) && num > 0) sec = Math.round(num * 60);
+          }
+          if (sec > 0) {
+            totalSeconds = sec;
+            remainingSeconds = sec;
+            render();
+            if (window.soundEngine) window.soundEngine.playPop();
+          } else {
+            alert('請輸入有效的大於 0 的時間數字！');
+          }
+        };
+
+        if (customBtn) customBtn.addEventListener('click', askCustomTime);
+        if (digitsBox) digitsBox.addEventListener('click', askCustomTime);
+
         startBtn.addEventListener('click', () => {
           if (isRunning) { stop(); return; }
+          if (remainingSeconds <= 0) remainingSeconds = totalSeconds;
           isRunning = true;
           startBtn.innerHTML = '<i class="fa-solid fa-pause"></i> 暫停';
           startBtn.style.background = 'linear-gradient(135deg, #2EC4B6, #20A498)';
@@ -1666,17 +1723,17 @@ const ClassroomWidgets = {
             if (remainingSeconds > 0) {
               remainingSeconds--; render();
             } else {
-              stop(); window.soundEngine.playChime();
+              stop(); if (window.soundEngine) window.soundEngine.playChime();
               if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 70 });
             }
           }, 1000);
         });
 
-        resetBtn.addEventListener('click', () => { stop(); remainingSeconds = totalSeconds; render(); window.soundEngine.playTick(); });
-        presetsRow.querySelectorAll('.preset-chip').forEach(chip => {
+        resetBtn.addEventListener('click', () => { stop(); remainingSeconds = totalSeconds; render(); if (window.soundEngine) window.soundEngine.playTick(); });
+        presetsRow.querySelectorAll('.preset-chip[data-sec]').forEach(chip => {
           chip.addEventListener('click', () => {
             totalSeconds = remainingSeconds + parseInt(chip.dataset.sec, 10);
-            remainingSeconds = totalSeconds; render(); window.soundEngine.playTick();
+            remainingSeconds = totalSeconds; render(); if (window.soundEngine) window.soundEngine.playTick();
           });
         });
         render();
@@ -1689,13 +1746,14 @@ const ClassroomWidgets = {
     let totalSec = 180, remainSec = 180, timerId = null, running = false;
     const content = `
       <div class="visual-timer-container">
-        <div class="visual-pie-wrap"><canvas id="vt-canvas" width="300" height="300"></canvas></div>
-        <div style="font-family: var(--font-num); font-size: 2.2rem; font-weight: 800; color: var(--text);" id="vt-digits">03:00</div>
-        <div class="timer-preset-row">
+        <div class="visual-pie-wrap" id="vt-pie-box" style="cursor: pointer;" title="點擊直接修改自訂時間"><canvas id="vt-canvas" width="300" height="300"></canvas></div>
+        <div style="font-family: var(--font-num); font-size: 2.2rem; font-weight: 800; color: var(--text); cursor: pointer;" id="vt-digits" title="點擊自訂時間">03:00</div>
+        <div class="timer-preset-row" style="flex-wrap: wrap; justify-content: center;">
           <button class="preset-chip" data-sec="60">1分</button>
           <button class="preset-chip" data-sec="180">3分</button>
           <button class="preset-chip" data-sec="300">5分</button>
           <button class="preset-chip" data-sec="600">10分</button>
+          <button class="preset-chip" id="vt-custom-btn" style="border: 1px dashed #FF9F1C; color: #D9480F; font-weight: 800;"><i class="fa-solid fa-pen"></i> 自訂</button>
         </div>
         <div class="timer-controls-row">
           <button class="action-btn-main" id="vt-start-btn"><i class="fa-solid fa-play"></i> 開始</button>
@@ -1708,11 +1766,11 @@ const ClassroomWidgets = {
       icon: 'fa-chart-pie',
       iconColor: '#FF9F1C',
       width: 310,
-      height: 380,
+      height: 390,
       type: 'visual-timer',
       contentHtml: content,
       onInit: (el) => {
-        const canvas = el.querySelector('#vt-canvas'), ctx = canvas.getContext('2d'), digitsEl = el.querySelector('#vt-digits'), startBtn = el.querySelector('#vt-start-btn'), resetBtn = el.querySelector('#vt-reset-btn');
+        const canvas = el.querySelector('#vt-canvas'), ctx = canvas.getContext('2d'), digitsEl = el.querySelector('#vt-digits'), pieBox = el.querySelector('#vt-pie-box'), startBtn = el.querySelector('#vt-start-btn'), resetBtn = el.querySelector('#vt-reset-btn'), customBtn = el.querySelector('#vt-custom-btn');
         const drawPie = () => {
           const w = canvas.width, h = canvas.height, cx = w/2, cy = h/2, r = cx - 12;
           ctx.clearRect(0,0,w,h);
@@ -1724,16 +1782,48 @@ const ClassroomWidgets = {
           digitsEl.textContent = `${String(Math.floor(remainSec/60)).padStart(2,'0')}:${String(remainSec%60).padStart(2,'0')}`;
         };
         const stop = () => { if (timerId) clearInterval(timerId); timerId = null; running = false; startBtn.innerHTML = '<i class="fa-solid fa-play"></i> 開始'; };
+        
+        const askCustom = () => {
+          stop();
+          const currentM = Math.floor(remainSec / 60);
+          const currentS = remainSec % 60;
+          const currentStr = currentS > 0 ? `${currentM}:${String(currentS).padStart(2, '0')}` : `${currentM}`;
+          const input = prompt('請輸入自訂視覺計時（分 或 分:秒，例如 2 或 15 或 07:30）：', currentStr);
+          if (input === null) return;
+          const trimmed = input.trim();
+          let sec = 0;
+          if (trimmed.includes(':')) {
+            const [m, s] = trimmed.split(':').map(Number);
+            if (!isNaN(m) && !isNaN(s)) sec = m * 60 + s;
+          } else {
+            const num = parseFloat(trimmed);
+            if (!isNaN(num) && num > 0) sec = Math.round(num * 60);
+          }
+          if (sec > 0) {
+            totalSec = sec;
+            remainSec = sec;
+            drawPie();
+            if (window.soundEngine) window.soundEngine.playPop();
+          } else {
+            alert('請輸入有效的大於 0 的時間！');
+          }
+        };
+
+        if (customBtn) customBtn.addEventListener('click', askCustom);
+        if (digitsEl) digitsEl.addEventListener('click', askCustom);
+        if (pieBox) pieBox.addEventListener('click', askCustom);
+
         startBtn.addEventListener('click', () => {
           if (running) { stop(); return; }
+          if (remainSec <= 0) remainSec = totalSec;
           running = true; startBtn.innerHTML = '<i class="fa-solid fa-pause"></i> 暫停';
           timerId = setInterval(() => {
             if (remainSec > 0) { remainSec--; drawPie(); }
-            else { stop(); window.soundEngine.playChime(); if (typeof confetti === 'function') confetti({ particleCount: 60, spread: 80 }); }
+            else { stop(); if (window.soundEngine) window.soundEngine.playChime(); if (typeof confetti === 'function') confetti({ particleCount: 60, spread: 80 }); }
           }, 1000);
         });
-        resetBtn.addEventListener('click', () => { stop(); remainSec = totalSec; drawPie(); window.soundEngine.playTick(); });
-        el.querySelectorAll('.preset-chip').forEach(c => c.addEventListener('click', () => { stop(); totalSec = parseInt(c.dataset.sec, 10); remainSec = totalSec; drawPie(); }));
+        resetBtn.addEventListener('click', () => { stop(); remainSec = totalSec; drawPie(); if (window.soundEngine) window.soundEngine.playTick(); });
+        el.querySelectorAll('.preset-chip[data-sec]').forEach(c => c.addEventListener('click', () => { stop(); totalSec = parseInt(c.dataset.sec, 10); remainSec = totalSec; drawPie(); }));
         drawPie();
       },
       onClose: () => { if (timerId) clearInterval(timerId); }
@@ -3589,7 +3679,8 @@ const ClassroomWidgets = {
             <span>編輯 <span id="modal-day-title">第一天</span> 考程</span>
             <button id="modal-close-btn" style="border: none; background: transparent; cursor: pointer; font-size: 1.2rem; line-height: 1;">✕</button>
           </div>
-          <div style="font-size: 0.75rem; color: #64748b;">格式：節次, 科目, 起始時間, 結束時間 (每行一節，24小時制)</div>
+          <div style="font-size: 0.75rem; color: #64748b;">格式：節次, 科目, 起始時間, 結束時間 (每行一節，24小時制，如：第 1 節, 國語, 08:40, 09:20)</div>
+          <div id="modal-error-msg" style="color: #ef4444; font-size: 0.8rem; font-weight: bold; min-height: 1.2em; padding: 2px 0;"></div>
           <textarea id="modal-schedule-text" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-family: monospace; font-size: 0.85rem; resize: none;"></textarea>
           <div style="display: flex; justify-content: flex-end; gap: 6px;">
             <button id="modal-reset-btn" style="padding: 6px 12px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">恢復預設</button>
@@ -3807,28 +3898,78 @@ const ClassroomWidgets = {
         if (modalSaveBtn) {
           modalSaveBtn.addEventListener('click', () => {
             if (!modalText) return;
-            const lines = modalText.value.trim().split('\n');
+            const errorMsgEl = editModal.querySelector('#modal-error-msg');
+            const showError = (msg) => {
+              if (errorMsgEl) errorMsgEl.textContent = msg;
+              else alert(msg);
+            };
+            if (errorMsgEl) errorMsgEl.textContent = '';
+
+            const rawLines = modalText.value.trim().split('\n').filter(l => l.trim().length > 0);
+            if (rawLines.length === 0) {
+              showError('❌ 請至少輸入一節考試日程！');
+              return;
+            }
+
             const parsed = [];
-            for (const line of lines) {
-              const parts = line.split(',').map(s => s.trim());
-              if (parts.length >= 4) {
-                parsed.push({
-                  period: parts[0],
-                  subject: parts[1],
-                  start: parts[2],
-                  end: parts[3]
-                });
+            const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+            for (let i = 0; i < rawLines.length; i++) {
+              const lineNum = i + 1;
+              const parts = rawLines[i].split(',').map(s => s.trim());
+              if (parts.length < 4) {
+                showError(`❌ 第 ${lineNum} 行欄位不足！請確認包含：節次, 科目, 起始時間, 結束時間`);
+                return;
+              }
+              const [period, subject, startRaw, endRaw] = parts;
+              if (!period || !subject) {
+                showError(`❌ 第 ${lineNum} 行節次或科目名稱不可為空！`);
+                return;
+              }
+
+              // 自動補齊 08:40 格式
+              const formatT = (t) => t.length === 4 && t[1] === ':' ? '0' + t : t;
+              const start = formatT(startRaw);
+              const end = formatT(endRaw);
+
+              if (!timeRegex.test(start)) {
+                showError(`❌ 第 ${lineNum} 行開始時間「${startRaw}」格式有誤！請使用 24 小時制（如 08:40）`);
+                return;
+              }
+              if (!timeRegex.test(end)) {
+                showError(`❌ 第 ${lineNum} 行結束時間「${endRaw}」格式有誤！請使用 24 小時制（如 09:20）`);
+                return;
+              }
+
+              const startSec = timeToSeconds(start);
+              const endSec = timeToSeconds(end);
+
+              if (endSec <= startSec) {
+                showError(`❌ 第 ${lineNum} 行【${subject}】結束時間（${end}）不能早於或等於開始時間（${start}）！`);
+                return;
+              }
+
+              parsed.push({ period, subject, start, end, startSec, endSec });
+            }
+
+            // 檢查節次重疊衝突
+            for (let i = 0; i < parsed.length - 1; i++) {
+              for (let j = i + 1; j < parsed.length; j++) {
+                const a = parsed[i];
+                const b = parsed[j];
+                if (Math.max(a.startSec, b.startSec) < Math.min(a.endSec, b.endSec)) {
+                  showError(`⚠️ 考程時間衝突！【${a.subject}】(${a.start}~${a.end}) 與【${b.subject}】(${b.start}~${b.end}) 發生重疊！`);
+                  return;
+                }
               }
             }
-            if (parsed.length > 0) {
-              scheduleData[activeDay] = parsed;
-              localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
-              renderScheduleList();
-              updateExamStatus();
-              if (editModal) editModal.style.display = 'none';
-            } else {
-              alert('格式有誤，請確認包含：節次, 科目, 起始時間, 結束時間');
-            }
+
+            // 驗證全部通過，儲存考程
+            scheduleData[activeDay] = parsed.map(({ period, subject, start, end }) => ({ period, subject, start, end }));
+            localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
+            renderScheduleList();
+            updateExamStatus();
+            if (editModal) editModal.style.display = 'none';
           });
         }
 

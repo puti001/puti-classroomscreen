@@ -248,8 +248,15 @@
       const isNewQuestion = !currentPoll || (currentPoll.question !== newPoll.question);
       currentPoll = newPoll;
 
-      // 換題時重置「已投票」訊息與選取樣式
-      if (isNewQuestion) {
+      // 檢查本地是否已有該題的投票紀錄（防重新整理、防重複灌票）
+      const pollKey = 'puti_poll_voted_' + room + '_' + newPoll.question;
+      const savedVote = localStorage.getItem(pollKey);
+
+      if (savedVote !== null && savedVote !== undefined && savedVote !== '') {
+        selectedOptionIdx = parseInt(savedVote, 10);
+        successBox.style.display = 'block';
+        successBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> 您已完成本題投票（可直接點選其他選項修改）。';
+      } else if (isNewQuestion) {
         selectedOptionIdx = null;
         successBox.style.display = 'none';
       }
@@ -289,6 +296,11 @@
 
           // Haptic feedback
           if (navigator.vibrate) navigator.vibrate(50);
+
+          // 本地持久化記錄此題已投票
+          if (currentPoll && currentPoll.question) {
+            localStorage.setItem('puti_poll_voted_' + room + '_' + currentPoll.question, selectedOptionIdx);
+          }
 
           const voteData = {
             type: 'VOTE_SUBMITTED',

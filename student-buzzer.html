@@ -264,6 +264,20 @@
             connBadge.className = 'status-badge connected';
             connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
             client.subscribe(`puti/class/${room}/buzzer/state`);
+            
+            // 通知大螢幕有學生裝置連線加入
+            try {
+              const seatVal = seatInput.value.trim() || '00';
+              const nameVal = nameInput.value.trim() || '同學';
+              const joinMsg = new Paho.MQTT.Message(JSON.stringify({
+                type: 'STUDENT_JOIN',
+                studentId: `${seatVal}_${nameVal}`,
+                seat: seatVal,
+                name: nameVal
+              }));
+              joinMsg.destinationName = `puti/class/${room}/buzzer/buzz`;
+              client.send(joinMsg);
+            } catch(e) {}
           },
           onFailure: (err) => {
             isConnecting = false;
