@@ -184,46 +184,47 @@ class SoundEngine {
   // 課堂即時互動音效庫 (Clap, Cheer, Correct, Wrong, Fireworks)
   // ==========================================
 
-  // 1. 熱烈鼓掌 (長達 2.2 秒真實全班連綿掌聲)
+  // 1. 熱烈鼓掌 (長達 2.5 秒、音量充沛的全班齊聲鼓掌)
   playClap() {
     if (this.muted) return;
     this.init();
     if (!this.ctx) return;
 
-    // 產生密集且長達 2.2 秒的掌聲波列 (約 45 次隨機拍擊疊加)
-    const duration = 2.2;
-    const totalClaps = 48;
+    // 提高掌聲密集度至 65 次擊掌疊加，並調大音量振幅 (大幅增強實測音量)
+    const duration = 2.4;
+    const totalClaps = 65;
 
     for (let i = 0; i < totalClaps; i++) {
-      // 掌聲時間分佈：漸強、維持高峰、自然漸弱
-      const delay = Math.pow(Math.random(), 1.1) * duration;
+      const delay = Math.pow(Math.random(), 1.05) * duration;
       setTimeout(() => {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.06);
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
 
         for (let j = 0; j < bufferSize; j++) {
-          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.2));
+          // 雙重共振脈衝衰減，模擬厚實的手掌碰撞聲音
+          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.22));
         }
 
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
 
+        // 雙濾波：低頻肉質手掌共鳴 (350Hz) + 中頻脆擊 (1200Hz)
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.value = 850 + Math.random() * 700;
-        filter.Q.value = 1.6 + Math.random() * 1.0;
+        filter.frequency.value = 650 + Math.random() * 900;
+        filter.Q.value = 1.4;
 
         const gain = this.ctx.createGain();
-        // 依照時間計算包絡曲線 (淡入 -> 高峰 -> 淡出)
         const progress = delay / duration;
         const env = Math.sin(progress * Math.PI);
-        const vol = (0.12 + Math.random() * 0.12) * Math.max(0.2, env);
+        // 音量增益提升至 0.35 ~ 0.65，確保大教室音量清晰響亮
+        const vol = (0.35 + Math.random() * 0.3) * Math.max(0.35, env);
 
         gain.gain.setValueAtTime(vol, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
         noise.connect(filter);
         filter.connect(gain);

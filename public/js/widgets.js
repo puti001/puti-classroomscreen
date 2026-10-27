@@ -3306,263 +3306,279 @@ const ClassroomWidgets = {
     let scheduleData = JSON.parse(localStorage.getItem('puti_exam_schedule') || 'null') || defaultExamSchedule;
     let activeDay = 'day1';
     let timerInterval = null;
+    let examScale = 1.0;
 
     const content = `
-      <div class="exam-timer-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
-        <!-- Top Toolbar: Day Switcher & Current Time -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #F8F9FA; padding: 6px 10px; border-radius: 10px; border: 1px solid #E9ECEF; flex-wrap: wrap; gap: 4px;">
-          <!-- Day Tabs -->
-          <div style="display: flex; gap: 5px;">
-            <button type="button" class="preset-chip active" id="exam-tab-day1" style="font-weight: 800; font-size: 0.82rem;">📅 第一天</button>
-            <button type="button" class="preset-chip" id="exam-tab-day2" style="font-weight: 800; font-size: 0.82rem;">📅 第二天</button>
+      <div class="exam-timer-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px; font-family: var(--font-base, system-ui);">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 8px;">
+          <div style="display: flex; gap: 6px;">
+            <button class="exam-day-btn active" data-day="day1" style="padding: 4px 12px; border-radius: 6px; font-weight: bold; border: 1px solid #ddd; background: var(--theme-color, #4A90E2); color: #fff; cursor: pointer;">第一天</button>
+            <button class="exam-day-btn" data-day="day2" style="padding: 4px 12px; border-radius: 6px; font-weight: bold; border: 1px solid #ddd; background: #fff; color: #333; cursor: pointer;">第二天</button>
           </div>
-
-          <!-- Current Clock Live Readout -->
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 0.76rem; font-weight: 800; color: #718096;"><i class="fa-solid fa-clock"></i> 目前時刻:</span>
-            <span id="exam-live-clock" style="font-size: 1.05rem; font-weight: 900; color: #1971C2; font-family: var(--font-num);">--:--:--</span>
-          </div>
-
-          <!-- Actions -->
-          <div style="display: flex; gap: 4px;">
-            <button type="button" class="action-btn-secondary" id="exam-edit-btn" style="height: 26px; padding: 0 8px; font-size: 0.72rem;" title="自訂各節考試時間與科目">
-              <i class="fa-solid fa-pen-to-square"></i> 自訂時程
-            </button>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span style="font-size: 0.8rem; color: #666; margin-right: 2px;">字級:</span>
+            <button id="exam-zoom-out" title="縮小字體" style="width: 28px; height: 26px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">A-</button>
+            <button id="exam-zoom-reset" title="重置字體" style="padding: 0 6px; height: 26px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">100%</button>
+            <button id="exam-zoom-in" title="放大字體" style="width: 28px; height: 26px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">A+</button>
+            <div style="width: 1px; height: 18px; background: #ddd; margin: 0 4px;"></div>
+            <button id="exam-edit-btn" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #ccc; background: #fff; font-size: 0.8rem; cursor: pointer;">⚙️ 編輯日程</button>
           </div>
         </div>
 
-        <!-- Hero Card: Active Exam Period Status & Giant Countdown -->
-        <div id="exam-hero-card" style="background: linear-gradient(145deg, #FFF5F5, #FFE3E3); border: 2px solid #FFA8A8; border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 14px rgba(224, 49, 49, 0.08); transition: all 0.3s ease;">
-          <div id="exam-hero-status-badge" style="font-size: 0.8rem; font-weight: 900; background: #E03131; color: #FFF; padding: 2px 10px; border-radius: 999px; margin-bottom: 4px;">
-            🔥 考試進行中
+        <div id="exam-hero-card" style="flex: 1; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; position: relative; overflow: hidden;">
+          <div id="exam-status-badge" style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; background: #3b82f6; margin-bottom: 4px;">
+            正在準備中
           </div>
-          <div id="exam-hero-subject" style="font-size: 1.5rem; font-weight: 900; color: #C92A2A; margin: 2px 0;">
+          
+          <div id="exam-subject-display" style="font-size: 2.6rem; font-weight: 900; letter-spacing: 2px; color: #f8fafc; text-shadow: 0 2px 8px rgba(0,0,0,0.4); line-height: 1.1; margin: 2px 0;">
             --
           </div>
-          <div id="exam-hero-range" style="font-size: 0.85rem; font-weight: 800; color: #718096; font-family: var(--font-num);">
+          <div id="exam-period-info" style="font-size: 0.95rem; color: #94a3b8; font-weight: 600; margin-bottom: 4px;">
             --:-- ~ --:--
           </div>
-          <div id="exam-hero-countdown" style="font-size: 2.8rem; font-weight: 900; color: #E03131; font-family: var(--font-num); line-height: 1.1; margin-top: 4px; text-shadow: 0 2px 8px rgba(224, 49, 49, 0.2);">
+
+          <div id="exam-countdown" style="font-family: 'Zen Maru Gothic', 'Cascadia Code', Consolas, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; font-size: 3.6rem; font-weight: 800; color: #38bdf8; letter-spacing: 2px; text-shadow: 0 0 16px rgba(56, 189, 248, 0.4); min-width: 220px; display: inline-block;">
             00:00
           </div>
-          <div id="exam-hero-subtext" style="font-size: 0.78rem; font-weight: 800; color: #E03131; margin-top: 2px;">
-            距離交卷鐘響剩餘時間
+          
+          <div style="position: absolute; bottom: 6px; right: 12px; font-size: 0.75rem; color: #64748b; font-family: monospace; font-variant-numeric: tabular-nums;">
+            目前時刻 <span id="exam-current-time" style="color: #94a3b8; font-weight: bold;">--:--:--</span>
           </div>
         </div>
 
-        <!-- Schedule List Table for Today -->
-        <div style="flex: 1; overflow-y: auto; background: #FFF; border: 1.5px solid #E9ECEF; border-radius: 12px; padding: 6px;">
-          <div style="font-size: 0.78rem; font-weight: 900; color: #495057; padding: 4px 6px; display: flex; justify-content: space-between;">
-            <span><i class="fa-solid fa-list-ol"></i> 當日考試時程表：</span>
-            <span style="font-size: 0.72rem; color: #718096;">自動依當前時間推進節次</span>
+        <div id="exam-schedule-list" style="max-height: 140px; overflow-y: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;">
+        </div>
+
+        <div id="exam-edit-modal" style="display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.98); z-index: 10; padding: 12px; flex-direction: column; gap: 8px; border-radius: 12px;">
+          <div style="font-weight: bold; font-size: 1rem; color: #1e293b; display: flex; justify-content: space-between;">
+            <span>編輯 <span id="modal-day-title">第一天</span> 考程</span>
+            <button id="modal-close-btn" style="border: none; background: transparent; cursor: pointer; font-size: 1.1rem;">✕</button>
           </div>
-          <div id="exam-schedule-list" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
-            <!-- Rendered Rows -->
+          <div style="font-size: 0.75rem; color: #64748b;">格式：節次, 科目, 起始時間, 結束時間 (每行一節，24小時制)</div>
+          <textarea id="modal-schedule-text" style="flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-family: monospace; font-size: 0.85rem; resize: none;"></textarea>
+          <div style="display: flex; justify-content: flex-end; gap: 6px;">
+            <button id="modal-reset-btn" style="padding: 6px 12px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">恢復預設</button>
+            <button id="modal-save-btn" style="padding: 6px 14px; border: none; background: #3b82f6; color: #fff; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">儲存考程</button>
           </div>
         </div>
       </div>
     `;
 
-    wm.createWindow({
+    const win = wm.createWindow({
       title: '考試日程計時器',
-      icon: 'fa-stopwatch-20',
-      iconColor: '#E03131',
-      width: 480,
-      height: 520,
-      type: 'exam-timer',
-      contentHtml: content,
-      onInit: (el) => {
-        const liveClock = el.querySelector('#exam-live-clock');
-        const heroCard = el.querySelector('#exam-hero-card');
-        const statusBadge = el.querySelector('#exam-hero-status-badge');
-        const heroSubject = el.querySelector('#exam-hero-subject');
-        const heroRange = el.querySelector('#exam-hero-range');
-        const heroCountdown = el.querySelector('#exam-hero-countdown');
-        const heroSubtext = el.querySelector('#exam-hero-subtext');
-        const scheduleList = el.querySelector('#exam-schedule-list');
-        const tabDay1 = el.querySelector('#exam-tab-day1');
-        const tabDay2 = el.querySelector('#exam-tab-day2');
-        const editBtn = el.querySelector('#exam-edit-btn');
+      width: 440,
+      height: 380,
+      content: content
+    });
 
-        let hasAlertedFinish = {};
+    const body = win.element.querySelector('.window-body');
+    const heroCard = body.querySelector('#exam-hero-card');
+    const subjectDisplay = body.querySelector('#exam-subject-display');
+    const countdownDisplay = body.querySelector('#exam-countdown');
+    const statusBadge = body.querySelector('#exam-status-badge');
+    const periodInfo = body.querySelector('#exam-period-info');
+    const currentTimeDisplay = body.querySelector('#exam-current-time');
+    const scheduleList = body.querySelector('#exam-schedule-list');
+    const dayBtns = body.querySelectorAll('.exam-day-btn');
+    const editBtn = body.querySelector('#exam-edit-btn');
+    const editModal = body.querySelector('#exam-edit-modal');
+    const modalCloseBtn = body.querySelector('#modal-close-btn');
+    const modalSaveBtn = body.querySelector('#modal-save-btn');
+    const modalResetBtn = body.querySelector('#modal-reset-btn');
+    const modalText = body.querySelector('#modal-schedule-text');
+    const modalDayTitle = body.querySelector('#modal-day-title');
+    const zoomInBtn = body.querySelector('#exam-zoom-in');
+    const zoomOutBtn = body.querySelector('#exam-zoom-out');
+    const zoomResetBtn = body.querySelector('#exam-zoom-reset');
 
-        const switchDay = (day) => {
-          activeDay = day;
-          tabDay1.classList.toggle('active', day === 'day1');
-          tabDay2.classList.toggle('active', day === 'day2');
-          renderScheduleRows();
-          updateExamTimer();
-          window.soundEngine.playPop();
-        };
+    function applyZoom(scale) {
+      examScale = Math.min(1.8, Math.max(0.7, scale));
+      subjectDisplay.style.fontSize = `${(2.6 * examScale).toFixed(2)}rem`;
+      countdownDisplay.style.fontSize = `${(3.6 * examScale).toFixed(2)}rem`;
+      zoomResetBtn.textContent = `${Math.round(examScale * 100)}%`;
+    }
 
-        tabDay1.addEventListener('click', () => switchDay('day1'));
-        tabDay2.addEventListener('click', () => switchDay('day2'));
+    zoomInBtn.addEventListener('click', () => applyZoom(examScale + 0.15));
+    zoomOutBtn.addEventListener('click', () => applyZoom(examScale - 0.15));
+    zoomResetBtn.addEventListener('click', () => applyZoom(1.0));
 
-        // Custom Schedule Editor Dialog
-        editBtn.addEventListener('click', () => {
-          const dayTitle = activeDay === 'day1' ? '第一天' : '第二天';
-          const currentList = scheduleData[activeDay];
-          const lines = currentList.map(item => `${item.period} | ${item.subject} | ${item.start} | ${item.end}`).join('\n');
-          const input = prompt(
-            `編輯【${dayTitle}】段考科目時程（每行一節，格式：節次 | 科目 | 開始時間 | 結束時間）：`,
-            lines
-          );
+    function renderScheduleList() {
+      const items = scheduleData[activeDay] || [];
+      scheduleList.innerHTML = '';
+      items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = `exam-row exam-row-${idx}`;
+        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; border-radius: 4px;';
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 600; color: #64748b; font-size: 0.85rem;">${item.period}</span>
+            <span style="font-weight: bold; color: #1e293b; font-size: 1.15rem;">${item.subject}</span>
+          </div>
+          <div style="font-family: monospace; font-variant-numeric: tabular-nums; color: #475569; font-size: 0.9rem;">
+            ${item.start} ~ ${item.end}
+          </div>
+        `;
+        scheduleList.appendChild(row);
+      });
+    }
 
-          if (input !== null) {
-            const parsed = [];
-            input.split('\n').forEach(line => {
-              const parts = line.split('|').map(s => s.trim());
-              if (parts.length >= 4) {
-                parsed.push({ period: parts[0], subject: parts[1], start: parts[2], end: parts[3] });
-              }
-            });
+    function timeToMinutes(str) {
+      const [h, m] = str.split(':').map(Number);
+      return h * 60 + m;
+    }
 
-            if (parsed.length > 0) {
-              scheduleData[activeDay] = parsed;
-              localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
-              renderScheduleRows();
-              updateExamTimer();
-              window.soundEngine.playBell();
-              alert(`【${dayTitle}】考試時程已成功更新！`);
-            }
+    function timeToSeconds(str) {
+      const [h, m] = str.split(':').map(Number);
+      return h * 3600 + m * 60;
+    }
+
+    function updateExamStatus() {
+      const now = new Date();
+      const currentH = String(now.getHours()).padStart(2, '0');
+      const currentM = String(now.getMinutes()).padStart(2, '0');
+      const currentS = String(now.getSeconds()).padStart(2, '0');
+      currentTimeDisplay.textContent = `${currentH}:${currentM}:${currentS}`;
+
+      const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      const items = scheduleData[activeDay] || [];
+
+      let currentExam = null;
+      let nextExam = null;
+
+      for (let i = 0; i < items.length; i++) {
+        const startSec = timeToSeconds(items[i].start);
+        const endSec = timeToSeconds(items[i].end);
+
+        if (nowSec >= startSec && nowSec < endSec) {
+          currentExam = { ...items[i], startSec, endSec, index: i };
+          break;
+        } else if (nowSec < startSec) {
+          if (!nextExam) {
+            nextExam = { ...items[i], startSec, endSec, index: i };
           }
+        }
+      }
+
+      const rows = scheduleList.querySelectorAll('.exam-row');
+      rows.forEach(r => {
+        r.style.background = 'transparent';
+        r.style.boxShadow = 'none';
+      });
+
+      if (currentExam) {
+        const remainSec = currentExam.endSec - nowSec;
+        const mm = String(Math.floor(remainSec / 60)).padStart(2, '0');
+        const ss = String(remainSec % 60).padStart(2, '0');
+
+        statusBadge.textContent = '● 考試進行中';
+        statusBadge.style.background = '#ef4444';
+        subjectDisplay.textContent = currentExam.subject;
+        periodInfo.textContent = `${currentExam.period} (${currentExam.start} ~ ${currentExam.end})`;
+        countdownDisplay.textContent = `${mm}:${ss}`;
+
+        if (remainSec <= 300) {
+          countdownDisplay.style.color = '#f87171';
+        } else {
+          countdownDisplay.style.color = '#38bdf8';
+        }
+
+        if (rows[currentExam.index]) {
+          rows[currentExam.index].style.background = '#fee2e2';
+          rows[currentExam.index].style.fontWeight = 'bold';
+        }
+      } else if (nextExam) {
+        const waitSec = nextExam.startSec - nowSec;
+        const mm = String(Math.floor(waitSec / 60)).padStart(2, '0');
+        const ss = String(waitSec % 60).padStart(2, '0');
+
+        statusBadge.textContent = '⏳ 距離下節考試開始';
+        statusBadge.style.background = '#f59e0b';
+        subjectDisplay.textContent = `即將考：${nextExam.subject}`;
+        periodInfo.textContent = `${nextExam.period} (${nextExam.start} ~ ${nextExam.end})`;
+        countdownDisplay.textContent = `${mm}:${ss}`;
+        countdownDisplay.style.color = '#fbbf24';
+
+        if (rows[nextExam.index]) {
+          rows[nextExam.index].style.background = '#fef3c7';
+        }
+      } else {
+        statusBadge.textContent = '✓ 今日考試已結束';
+        statusBadge.style.background = '#10b981';
+        subjectDisplay.textContent = '今日日程完畢';
+        periodInfo.textContent = '辛苦了！請好好休息';
+        countdownDisplay.textContent = '00:00';
+        countdownDisplay.style.color = '#94a3b8';
+      }
+    }
+
+    dayBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        dayBtns.forEach(b => {
+          b.classList.remove('active');
+          b.style.background = '#fff';
+          b.style.color = '#333';
         });
+        btn.classList.add('active');
+        btn.style.background = 'var(--theme-color, #4A90E2)';
+        btn.style.color = '#fff';
+        activeDay = btn.getAttribute('data-day');
+        renderScheduleList();
+        updateExamStatus();
+      });
+    });
 
-        // Time to minutes from midnight
-        const parseMinutes = (timeStr) => {
-          const [h, m] = timeStr.split(':').map(Number);
-          return h * 60 + m;
-        };
+    editBtn.addEventListener('click', () => {
+      modalDayTitle.textContent = activeDay === 'day1' ? '第一天' : '第二天';
+      const items = scheduleData[activeDay] || [];
+      modalText.value = items.map(it => `${it.period}, ${it.subject}, ${it.start}, ${it.end}`).join('\n');
+      editModal.style.display = 'flex';
+    });
 
-        const renderScheduleRows = () => {
-          const list = scheduleData[activeDay] || [];
-          const now = new Date();
-          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    modalCloseBtn.addEventListener('click', () => {
+      editModal.style.display = 'none';
+    });
 
-          scheduleList.innerHTML = list.map((item, idx) => {
-            const sMin = parseMinutes(item.start);
-            const eMin = parseMinutes(item.end);
-            let stateClass = 'pending';
-            let stateText = '⏳ 未開始';
-            let bg = '#FFF';
+    modalResetBtn.addEventListener('click', () => {
+      scheduleData[activeDay] = JSON.parse(JSON.stringify(defaultExamSchedule[activeDay]));
+      localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
+      renderScheduleList();
+      editModal.style.display = 'none';
+      updateExamStatus();
+    });
 
-            if (currentMinutes >= sMin && currentMinutes < eMin) {
-              stateClass = 'active';
-              stateText = '🔥 考試中';
-              bg = '#FFE3E3';
-            } else if (currentMinutes >= eMin) {
-              stateClass = 'done';
-              stateText = '✔ 已結束';
-              bg = '#F8F9FA';
-            }
-
-            return `
-              <div style="display: flex; justify-content: space-between; align-items: center; background: ${bg}; border: 1.5px solid ${stateClass === 'active' ? '#FFA8A8' : '#E9ECEF'}; padding: 6px 10px; border-radius: 8px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-weight: 900; font-size: 0.85rem; color: #495057;">${item.period}</span>
-                  <span style="font-weight: 900; font-size: 0.95rem; color: #C92A2A;">${item.subject}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #718096; font-family: var(--font-num);">${item.start} ~ ${item.end}</span>
-                  <span style="font-size: 0.72rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; ${stateClass === 'active' ? 'background: #E03131; color: white;' : stateClass === 'done' ? 'background: #E9ECEF; color: #868E96;' : 'background: #E7F5FF; color: #1971C2;'}">${stateText}</span>
-                </div>
-              </div>
-            `;
-          }).join('');
-        };
-
-        // Main Timer Loop
-        const updateExamTimer = () => {
-          const now = new Date();
-          liveClock.textContent = now.toTimeString().split(' ')[0];
-
-          const currentMinutes = now.getHours() * 60 + now.getMinutes();
-          const currentSeconds = now.getSeconds();
-          const currentTotalSec = currentMinutes * 60 + currentSeconds;
-
-          const list = scheduleData[activeDay] || [];
-
-          let activeExam = null;
-          let nextExam = null;
-
-          for (let i = 0; i < list.length; i++) {
-            const item = list[i];
-            const sSec = parseMinutes(item.start) * 60;
-            const eSec = parseMinutes(item.end) * 60;
-
-            if (currentTotalSec >= sSec && currentTotalSec < eSec) {
-              activeExam = { ...item, sSec, eSec };
-              break;
-            } else if (currentTotalSec < sSec && !nextExam) {
-              nextExam = { ...item, sSec, eSec };
-            }
-          }
-
-          if (activeExam) {
-            const remainSec = activeExam.eSec - currentTotalSec;
-            const m = Math.floor(remainSec / 60);
-            const s = remainSec % 60;
-            const timeStr = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-            heroCard.style.background = 'linear-gradient(145deg, #FFF5F5, #FFE3E3)';
-            heroCard.style.borderColor = '#FFA8A8';
-            statusBadge.style.background = '#E03131';
-            statusBadge.textContent = `🔥【${activeExam.period}】考試進行中`;
-            heroSubject.textContent = activeExam.subject;
-            heroRange.textContent = `${activeExam.start} ~ ${activeExam.end} (共 ${(activeExam.eSec - activeExam.sSec)/60} 分鐘)`;
-            heroCountdown.textContent = timeStr;
-            heroCountdown.style.color = '#E03131';
-            heroSubtext.textContent = '距離交卷鐘響剩餘時間';
-
-            if (remainSec === 300 && !hasAlertedFinish[activeExam.subject + '_5m']) {
-              hasAlertedFinish[activeExam.subject + '_5m'] = true;
-              window.soundEngine.playChime();
-            }
-            if (remainSec === 0 && !hasAlertedFinish[activeExam.subject + '_end']) {
-              hasAlertedFinish[activeExam.subject + '_end'] = true;
-              window.soundEngine.playBell();
-            }
-          } else if (nextExam) {
-            const remainSec = nextExam.sSec - currentTotalSec;
-            const m = Math.floor(remainSec / 60);
-            const s = remainSec % 60;
-            const timeStr = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-            heroCard.style.background = 'linear-gradient(145deg, #E7F5FF, #D0EBFF)';
-            heroCard.style.borderColor = '#74C0FC';
-            statusBadge.style.background = '#1971C2';
-            statusBadge.textContent = `☕ 下課休息／準備下一科【${nextExam.subject}】`;
-            heroSubject.textContent = `即將開始：${nextExam.period} ${nextExam.subject}`;
-            heroRange.textContent = `${nextExam.start} 準時開始考試`;
-            heroCountdown.textContent = timeStr;
-            heroCountdown.style.color = '#1971C2';
-            heroSubtext.textContent = '距離下一節考試開始倒數';
-          } else {
-            heroCard.style.background = 'linear-gradient(145deg, #EBFBEE, #D3F9D8)';
-            heroCard.style.borderColor = '#69DB7C';
-            statusBadge.style.background = '#2B8A3E';
-            statusBadge.textContent = '🎉 今日考試已全數結束';
-            heroSubject.textContent = '全班辛苦了！收拾書包準備放學';
-            heroRange.textContent = '請保持安靜，等待老師統一指導';
-            heroCountdown.textContent = '00:00';
-            heroCountdown.style.color = '#2B8A3E';
-            heroSubtext.textContent = '定期評量當日時程順利完成';
-          }
-
-          if (currentSeconds === 0) {
-            renderScheduleRows();
-          }
-        };
-
-        renderScheduleRows();
-        updateExamTimer();
-        timerInterval = setInterval(updateExamTimer, 1000);
-      },
-      onClose: () => {
-        if (timerInterval) clearInterval(timerInterval);
+    modalSaveBtn.addEventListener('click', () => {
+      const lines = modalText.value.trim().split('\n');
+      const parsed = [];
+      for (const line of lines) {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length >= 4) {
+          parsed.push({
+            period: parts[0],
+            subject: parts[1],
+            start: parts[2],
+            end: parts[3]
+          });
+        }
+      }
+      if (parsed.length > 0) {
+        scheduleData[activeDay] = parsed;
+        localStorage.setItem('puti_exam_schedule', JSON.stringify(scheduleData));
+        renderScheduleList();
+        updateExamStatus();
+        editModal.style.display = 'none';
+      } else {
+        alert('格式有誤，請確認包含：節次, 科目, 起始時間, 結束時間');
       }
     });
-  },
+
+    renderScheduleList();
+    updateExamStatus();
+    timerInterval = setInterval(updateExamStatus, 1000);
+
+    win.on('close', () => {
+      if (timerInterval) clearInterval(timerInterval);
+    });
+  }
 
 };
 
