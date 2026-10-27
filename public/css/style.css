@@ -547,6 +547,19 @@ body {
   color: var(--text);
 }
 
+
+.symbol-card ruby {
+  ruby-position: over;
+  display: inline-ruby;
+}
+.symbol-card rt {
+  font-size: 0.52em;
+  font-weight: 700;
+  color: #7C3AED;
+  user-select: none;
+  line-height: 1;
+}
+
 .symbol-desc {
   font-size: 0.76rem;
   color: var(--text-muted);

@@ -2022,37 +2022,95 @@ const ClassroomWidgets = {
 
   spawnWorkSymbols(wm) {
     let wsScale = 1.0;
+    let isZhuyin = localStorage.getItem('puti_ws_zhuyin') === 'true';
+
     const symbols = [
-      { id: 'silent', icon: '🤫', name: '保持安靜', desc: '獨立自主專注思考' },
-      { id: 'whisper', icon: '👂', name: '輕聲細語', desc: '相鄰同學悄悄交換意見' },
-      { id: 'group', icon: '🤝', name: '小組合作', desc: '同組夥伴熱烈討論交流' },
-      { id: 'class', icon: '📢', name: '全班發表', desc: '安靜聆聽他人發言分享' }
+      {
+        id: 'silent',
+        icon: '🤫',
+        name: '保持安靜',
+        desc: '獨立自主專注思考',
+        rubyName: '<ruby>保<rt>ㄅㄠˇ</rt>持<rt>ㄔˊ</rt>安<rt>ㄢ</rt>靜<rt>ㄐㄧㄥˋ</rt></ruby>',
+        rubyDesc: '<ruby>獨<rt>ㄉㄨˊ</rt>立<rt>ㄌㄧˋ</rt>自<rt>ㄗˋ</rt>主<rt>ㄓㄨˇ</rt>專<rt>ㄓㄨㄢ</rt>注<rt>ㄓㄨˋ</rt>思<rt>ㄙ</rt>考<rt>ㄎㄠˇ</rt></ruby>'
+      },
+      {
+        id: 'whisper',
+        icon: '👂',
+        name: '輕聲細語',
+        desc: '相鄰同學悄悄交換意見',
+        rubyName: '<ruby>輕<rt>ㄑㄧㄥ</rt>聲<rt>ㄕㄥ</rt>細<rt>ㄒㄧˋ</rt>語<rt>ㄩˇ</rt></ruby>',
+        rubyDesc: '<ruby>相<rt>ㄒㄧㄤ</rt>鄰<rt>ㄌㄧㄣˊ</rt>同<rt>ㄊㄨㄥˊ</rt>學<rt>ㄒㄩㄝˊ</rt>悄<rt>ㄑㄧㄠˇ</rt>悄<rt>ㄑㄧㄠˇ</rt>交<rt>ㄐㄧㄠ</rt>換<rt>ㄏㄨㄢˋ</rt>意<rt>ㄧˋ</rt>見<rt>ㄐㄧㄢˋ</rt></ruby>'
+      },
+      {
+        id: 'group',
+        icon: '🤝',
+        name: '小組合作',
+        desc: '同組夥伴熱烈討論交流',
+        rubyName: '<ruby>小<rt>ㄒㄧㄠˇ</rt>組<rt>ㄗㄨˇ</rt>合<rt>ㄏㄜˊ</rt>作<rt>ㄗㄨㄛˋ</rt></ruby>',
+        rubyDesc: '<ruby>同<rt>ㄊㄨㄥˊ</rt>組<rt>ㄗㄨˇ</rt>夥<rt>ㄏㄨㄛˇ</rt>伴<rt>ㄅㄢˋ</rt>熱<rt>ㄖㄜˋ</rt>烈<rt>ㄌㄧㄝˋ</rt>討<rt>ㄊㄠˇ</rt>論<rt>ㄌㄨㄣˋ</rt>交<rt>ㄐㄧㄠ</rt>流<rt>ㄌㄧㄡˊ</rt></ruby>'
+      },
+      {
+        id: 'class',
+        icon: '📢',
+        name: '全班發表',
+        desc: '安靜聆聽他人發言分享',
+        rubyName: '<ruby>全<rt>ㄑㄩㄢˊ</rt>班<rt>ㄅㄢ</rt>發<rt>ㄈㄚ</rt>表<rt>ㄅㄧㄠˇ</rt></ruby>',
+        rubyDesc: '<ruby>安<rt>ㄢ</rt>靜<rt>ㄐㄧㄥˋ</rt>聆<rt>ㄌㄧㄥˊ</rt>聽<rt>ㄊㄧㄥ</rt>他<rt>ㄊㄚ</rt>人<rt>ㄖㄣˊ</rt>發<rt>ㄈㄚ</rt>言<rt>ㄧㄢˊ</rt>分<rt>ㄈㄣ</rt>享<rt>ㄒㄧㄤˇ</rt></ruby>'
+      }
     ];
     const content = `
       <div class="work-symbols-container" style="display: flex; flex-direction: column; height: 100%; gap: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px;">
           <span style="font-size: 0.78rem; font-weight: 800; color: #718096;">點擊切換工作模式</span>
-          <div class="font-scale-controls">
-            <button class="font-scale-btn" id="ws-font-minus" title="縮小符號與文字">A-</button>
-            <button class="font-scale-btn" id="ws-font-reset" title="預設大小">A</button>
-            <button class="font-scale-btn" id="ws-font-plus" title="放大符號與文字">A+</button>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="scale-btn" id="ws-zhuyin-btn" style="font-size: 0.74rem; font-weight: 800; padding: 1px 7px; border-radius: 6px; border: 1.5px solid ${isZhuyin ? '#8B5CF6' : '#CBD5E1'}; color: ${isZhuyin ? '#6D28D9' : '#64748B'}; background: ${isZhuyin ? '#F5F3FF' : '#FFF'}; cursor: pointer; transition: all 0.2s;" title="切換注音標注 (適合一、二年級)">ㄅ 注音</button>
+            <div class="font-scale-controls">
+              <button class="font-scale-btn" id="ws-font-minus" title="縮小符號與文字">A-</button>
+              <button class="font-scale-btn" id="ws-font-reset" title="預設大小">A</button>
+              <button class="font-scale-btn" id="ws-font-plus" title="放大符號與文字">A+</button>
+            </div>
           </div>
         </div>
         <div class="symbol-grid" id="ws-symbol-grid" style="flex: 1;">
           ${symbols.map((s, idx) => `
             <div class="symbol-card ${idx === 0 ? 'active' : ''}" data-id="${s.id}">
               <div class="symbol-icon-wrapper" style="font-size: 2.2rem; transition: font-size 0.15s ease;">${s.icon}</div>
-              <div class="symbol-name" style="font-size: 0.95rem; font-weight: 900; transition: font-size 0.15s ease;">${s.name}</div>
-              <div class="symbol-desc" style="font-size: 0.75rem; transition: font-size 0.15s ease;">${s.desc}</div>
+              <div class="symbol-name" style="font-size: 0.95rem; font-weight: 900; transition: font-size 0.15s ease;">${isZhuyin ? s.rubyName : s.name}</div>
+              <div class="symbol-desc" style="font-size: 0.75rem; transition: font-size 0.15s ease;">${isZhuyin ? s.rubyDesc : s.desc}</div>
             </div>
           `).join('')}
         </div>
       </div>
     `;
     wm.createWindow({
-      title: '課堂工作符號', icon: 'fa-icons', iconColor: '#9A8CFF', width: 340, height: 330, type: 'work-symbols', contentHtml: content,
+      title: '課堂工作符號', icon: 'fa-icons', iconColor: '#9A8CFF', width: 350, height: 350, minWidth: 300, minHeight: 310, type: 'work-symbols', contentHtml: content,
       onInit: (el) => {
         const grid = el.querySelector('#ws-symbol-grid');
+        const zhuyinBtn = el.querySelector('#ws-zhuyin-btn');
+
+        const renderSymbols = () => {
+          grid.querySelectorAll('.symbol-card').forEach(card => {
+            const sym = symbols.find(s => s.id === card.dataset.id);
+            if (!sym) return;
+            const nameEl = card.querySelector('.symbol-name');
+            const descEl = card.querySelector('.symbol-desc');
+            if (nameEl) nameEl.innerHTML = isZhuyin ? sym.rubyName : sym.name;
+            if (descEl) descEl.innerHTML = isZhuyin ? sym.rubyDesc : sym.desc;
+          });
+          if (zhuyinBtn) {
+            zhuyinBtn.style.borderColor = isZhuyin ? '#8B5CF6' : '#CBD5E1';
+            zhuyinBtn.style.color = isZhuyin ? '#6D28D9' : '#64748B';
+            zhuyinBtn.style.background = isZhuyin ? '#F5F3FF' : '#FFF';
+          }
+        };
+
+        zhuyinBtn?.addEventListener('click', () => {
+          isZhuyin = !isZhuyin;
+          localStorage.setItem('puti_ws_zhuyin', isZhuyin);
+          renderSymbols();
+          window.soundEngine.playPop();
+        });
+
         const applyScale = () => {
           grid.querySelectorAll('.symbol-icon-wrapper').forEach(i => i.style.fontSize = (2.2 * wsScale) + 'rem');
           grid.querySelectorAll('.symbol-name').forEach(n => n.style.fontSize = (0.95 * wsScale) + 'rem');
