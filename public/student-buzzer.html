@@ -181,7 +181,8 @@
     seatInput.addEventListener('change', () => localStorage.setItem('puti_student_seat', seatInput.value.trim()));
     nameInput.addEventListener('change', () => localStorage.setItem('puti_student_name', nameInput.value.trim()));
 
-    let canBuzz = true;
+    let canBuzz = false;
+    let buzzerState = 'STANDBY'; // 'STANDBY' | 'ACTIVE' | 'LOCKED'
 
     // 1. MQTT Cloud Realtime Connection
     const clientId = 'puti_buzzer_' + Math.random().toString(16).substring(2, 8);
@@ -196,13 +197,23 @@
     client.onMessageArrived = (msg) => {
       try {
         const payload = JSON.parse(msg.payloadString);
-        if (payload.type === 'BUZZER_RESET') {
+        if (payload.type === 'BUZZER_START') {
+          buzzerState = 'ACTIVE';
           canBuzz = true;
           buzzBtn.classList.remove('disabled');
-          statePrompt.textContent = '🔥 老師已重置搶答，準備好隨時按下！';
-          statePrompt.style.color = '#2B8A3E';
+          statePrompt.textContent = '🔥 老師已發布搶答！請立即搶按！';
+          statePrompt.style.color = '#E03131';
+          resultBanner.style.display = 'none';
+          if (navigator.vibrate) navigator.vibrate(80);
+        } else if (payload.type === 'BUZZER_RESET' || payload.type === 'BUZZER_STANDBY') {
+          buzzerState = 'STANDBY';
+          canBuzz = false;
+          buzzBtn.classList.add('disabled');
+          statePrompt.textContent = '⏳ 等待老師按「開始搶答」... 請勿偷跑！';
+          statePrompt.style.color = '#718096';
           resultBanner.style.display = 'none';
         } else if (payload.type === 'BUZZER_WINNER') {
+          buzzerState = 'LOCKED';
           canBuzz = false;
           buzzBtn.classList.add('disabled');
           const myId = `${seatInput.value ? seatInput.value + '號 ' : ''}${nameInput.value || '匿名同學'}`;
@@ -243,12 +254,22 @@
     // 2. BroadcastChannel Fallback
     const channel = new BroadcastChannel('puti_classroom_buzzer_' + room);
     channel.onmessage = (e) => {
-      if (e.data.type === 'BUZZER_RESET') {
+      if (e.data.type === 'BUZZER_START') {
+        buzzerState = 'ACTIVE';
         canBuzz = true;
         buzzBtn.classList.remove('disabled');
-        statePrompt.textContent = '🔥 搶答已重置，準備好隨時按下！';
+        statePrompt.textContent = '🔥 老師已發布搶答！請立即搶按！';
+        statePrompt.style.color = '#E03131';
+        resultBanner.style.display = 'none';
+      } else if (e.data.type === 'BUZZER_RESET' || e.data.type === 'BUZZER_STANDBY') {
+        buzzerState = 'STANDBY';
+        canBuzz = false;
+        buzzBtn.classList.add('disabled');
+        statePrompt.textContent = '⏳ 等待老師按「開始搶答」... 請勿偷跑！';
+        statePrompt.style.color = '#718096';
         resultBanner.style.display = 'none';
       } else if (e.data.type === 'BUZZER_WINNER') {
+        buzzerState = 'LOCKED';
         canBuzz = false;
         buzzBtn.classList.add('disabled');
         const myId = `${seatInput.value ? seatInput.value + '號 ' : ''}${nameInput.value || '匿名同學'}`;
@@ -262,9 +283,19 @@
       }
     };
 
+    // Initialize button state as standby disabled
+    buzzBtn.classList.add('disabled');
+    statePrompt.textContent = '⏳ 等待老師按「開始搶答」...';
+
     // Buzz Click Action
     buzzBtn.addEventListener('click', () => {
-      if (!canBuzz) return;
+      if (!canBuzz || buzzerState !== 'ACTIVE') {
+        // Anti-cheat alert
+        if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+        statePrompt.textContent = '⚠️ 老師尚未發布「開始搶答」，請勿偷跑！';
+        statePrompt.style.color = '#E03131';
+        return;
+      }
 
       const seat = seatInput.value.trim();
       const name = nameInput.value.trim() || '學生';

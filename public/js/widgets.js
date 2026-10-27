@@ -334,8 +334,8 @@ const ClassroomWidgets = {
   // 2. 課堂搶答神器 (Classroom Quick Buzzer)
   // =========================================================================
   spawnBuzzer(wm) {
-    let locked = false;
-    let buzzStartTime = Date.now();
+    let buzzerState = 'STANDBY'; // 'STANDBY' | 'ACTIVE' | 'LOCKED'
+    let buzzStartTime = 0;
     let buzzHistory = [];
     let buzzFontSize = 1.0; // rem
 
@@ -372,13 +372,13 @@ const ClassroomWidgets = {
         </div>
 
         <!-- Status Banner -->
-        <div class="buzzer-status-banner" id="buzz-banner" style="background: #FFF9DB; color: #D9480F; border: 1.5px solid #FFE066; border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; font-size: 0.95rem; transition: font-size 0.15s ease;">
-          📢 搶答準備中！點擊按鈕、按鍵盤數字 1~4 或手機掃碼連線
+        <div class="buzzer-status-banner" id="buzz-banner" style="background: #FFF9DB; color: #D9480F; border: 1.5px solid #FFE066; border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; font-size: 0.95rem; transition: all 0.2s ease;">
+          ⏳ 搶答待機中！請老師點擊下方【開始搶答 🔥】（或按空白鍵）發布信號
         </div>
 
         <!-- 4 Teams On-Screen Quick Buzzer Grid (現場觸控 / 鍵盤 1~4 搶答) -->
         <div style="font-size: 0.72rem; font-weight: 800; color: #718096; display: flex; justify-content: space-between; align-items: center;">
-          <span>👉 現場分組卡片搶答（觸控點選或按鍵盤數字 1 ~ 4）：</span>
+          <span>👉 現場分組卡片搶答（開始後按 1 ~ 4 或觸控點擊；未開始前按將判定偷跑）：</span>
         </div>
         <div class="buzzer-teams-grid" id="buzz-teams-box" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 2px 0;">
           ${teams.map(t => `
@@ -403,13 +403,13 @@ const ClassroomWidgets = {
 
         <!-- Controls Toolbar -->
         <div style="display: flex; gap: 6px; width: 100%;">
-          <button class="action-btn-main" id="buzz-start-btn" style="flex: 1.2; height: 36px; font-size: 0.88rem; background: linear-gradient(135deg, #2B8A3E, #20C997);">
-            <i class="fa-solid fa-play"></i> 開始搶答
+          <button class="action-btn-main" id="buzz-start-btn" style="flex: 1.3; height: 38px; font-size: 0.92rem; background: linear-gradient(135deg, #2B8A3E, #20C997); font-weight: 900;">
+            <i class="fa-solid fa-play"></i> 開始搶答 (Space)
           </button>
-          <button class="action-btn-secondary" id="buzz-reset-btn" style="flex: 1; height: 36px; font-size: 0.88rem;">
-            <i class="fa-solid fa-rotate-left"></i> 重置
+          <button class="action-btn-secondary" id="buzz-reset-btn" style="flex: 0.9; height: 38px; font-size: 0.88rem;">
+            <i class="fa-solid fa-rotate-left"></i> 重置待機
           </button>
-          <button class="action-btn-secondary" id="buzz-qr-btn" style="height: 36px; font-size: 0.82rem; padding: 0 12px;" title="放大手機搶答 QR Code">
+          <button class="action-btn-secondary" id="buzz-qr-btn" style="height: 38px; font-size: 0.82rem; padding: 0 12px;" title="放大手機搶答 QR Code">
             <i class="fa-solid fa-qrcode"></i> 手機掃碼
           </button>
         </div>
@@ -421,7 +421,7 @@ const ClassroomWidgets = {
       icon: 'fa-bell',
       iconColor: '#E63946',
       width: 500,
-      height: 460,
+      height: 480,
       type: 'buzzer',
       contentHtml: content,
       onInit: (el) => {
@@ -482,9 +482,20 @@ const ClassroomWidgets = {
           }
         });
 
+        // Warn for false start (偷跑警告)
+        const warnFalseStart = (culprit) => {
+          banner.innerHTML = `⚠️ <strong>【${culprit}】偷跑違規！</strong>老師尚未發布「開始搶答」！`;
+          banner.style.background = '#FFE3E3';
+          banner.style.color = '#C92A2A';
+          banner.style.borderColor = '#FFA8A8';
+          banner.classList.add('animate-shake');
+          setTimeout(() => banner.classList.remove('animate-shake'), 400);
+          window.soundEngine.playTick();
+        };
+
         const triggerWinner = (winnerTitle, reactionMs, seatNum = null) => {
-          if (locked) return;
-          locked = true;
+          if (buzzerState !== 'ACTIVE') return;
+          buzzerState = 'LOCKED';
 
           banner.innerHTML = `🎉 恭喜【<strong>${winnerTitle}</strong>】第一名搶得回答權！(${reactionMs}s)`;
           banner.style.background = '#EBFBEE';
@@ -539,33 +550,46 @@ const ClassroomWidgets = {
         };
 
         const resetAll = () => {
-          locked = false;
-          buzzStartTime = Date.now();
+          buzzerState = 'STANDBY';
+          buzzStartTime = 0;
           buzzHistory = [];
-          banner.innerHTML = '📢 搶答準備中！點擊按鈕、按鍵盤數字 1~4 或手機掃碼連線';
+          banner.innerHTML = '⏳ 搶答待機中！請老師點擊下方【開始搶答 🔥】（或按空白鍵）發布信號';
           banner.style.background = '#FFF9DB';
           banner.style.color = '#D9480F';
           banner.style.borderColor = '#FFE066';
-          cards.forEach(c => c.style.background = '#FFF');
+          cards.forEach(c => {
+            c.style.background = '#FFF';
+            c.style.borderColor = '';
+          });
           renderHistory();
 
           if (window.realtimeEngine) {
-            window.realtimeEngine.publish('buzzer/state', { type: 'BUZZER_RESET' });
+            window.realtimeEngine.publish('buzzer/state', { type: 'BUZZER_STANDBY' });
           }
           window.soundEngine.playTick();
         };
 
-        // Start Buzzer Round
-        startBtn.addEventListener('click', () => {
-          resetAll();
+        // Start Buzzer Round (老師發令解鎖)
+        const startRound = () => {
+          buzzerState = 'ACTIVE';
           buzzStartTime = Date.now();
-          banner.innerHTML = '🔥 搶答開始！學生請立即按下手機、卡片或鍵盤 1~4 搶答！';
+          buzzHistory = [];
+          banner.innerHTML = '🔥 搶答進行中！請立即按下卡片、鍵盤 1~4 或手機按鈕搶答！';
           banner.style.background = '#FFE3E3';
           banner.style.color = '#C92A2A';
           banner.style.borderColor = '#FFA8A8';
-          window.soundEngine.playPop();
-        });
+          cards.forEach(c => {
+            c.style.background = '#FFFDF0';
+          });
+          renderHistory();
 
+          if (window.realtimeEngine) {
+            window.realtimeEngine.publish('buzzer/state', { type: 'BUZZER_START' });
+          }
+          window.soundEngine.playPop();
+        };
+
+        startBtn.addEventListener('click', startRound);
         resetBtn.addEventListener('click', resetAll);
 
         // QR Code Big
@@ -582,6 +606,14 @@ const ClassroomWidgets = {
           card.addEventListener('click', () => {
             const teamId = card.dataset.id;
             const t = teams.find(item => item.id == teamId);
+            if (!t) return;
+
+            if (buzzerState === 'STANDBY') {
+              warnFalseStart(t.name);
+              return;
+            }
+            if (buzzerState !== 'ACTIVE') return;
+
             const reaction = ((Date.now() - buzzStartTime) / 1000).toFixed(2);
             if (!buzzHistory.some(h => h.name === t.name)) {
               buzzHistory.push({ name: t.name, reaction: reaction });
@@ -591,9 +623,21 @@ const ClassroomWidgets = {
           });
         });
 
-        // Keyboard triggers: 1, 2, 3, 4 (主鍵盤與數字鍵盤皆支援)
+        // Keyboard triggers: 1, 2, 3, 4 (主鍵盤與數字鍵盤皆支援) + Space to Start
         const keyHandler = (e) => {
           if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+          // Space key triggers Start Buzzer
+          if (e.code === 'Space' || e.key === ' ') {
+            e.preventDefault();
+            if (buzzerState === 'STANDBY') {
+              startRound();
+            } else if (buzzerState === 'LOCKED') {
+              resetAll();
+            }
+            return;
+          }
+
           const keyMap = {
             '1': 1, 'Numpad1': 1,
             '2': 2, 'Numpad2': 2,
@@ -609,6 +653,13 @@ const ClassroomWidgets = {
                 card.style.transform = 'scale(0.92)';
                 setTimeout(() => { if (card) card.style.transform = ''; }, 160);
               }
+
+              if (buzzerState === 'STANDBY') {
+                warnFalseStart(t.name);
+                return;
+              }
+              if (buzzerState !== 'ACTIVE') return;
+
               const reaction = ((Date.now() - buzzStartTime) / 1000).toFixed(2);
               if (!buzzHistory.some(h => h.name === t.name)) {
                 buzzHistory.push({ name: t.name, reaction: reaction });
@@ -625,6 +676,12 @@ const ClassroomWidgets = {
         if (window.realtimeEngine) {
           window.realtimeEngine.subscribe('buzzer/buzz', (data) => {
             if (data.type === 'BUZZ_TRIGGERED') {
+              if (buzzerState === 'STANDBY') {
+                warnFalseStart(data.name);
+                return;
+              }
+              if (buzzerState !== 'ACTIVE') return;
+
               const reaction = ((Date.now() - buzzStartTime) / 1000).toFixed(2);
               if (!buzzHistory.some(h => h.name === data.name)) {
                 buzzHistory.push({ name: data.name, reaction: reaction });
@@ -817,37 +874,64 @@ const ClassroomWidgets = {
   // 5. 課堂即時投票 (Poll - 支援大圖投影 QR Code)
   // =========================================================================
   spawnPoll(wm) {
-    let question = "今日上課重點都聽懂了嗎？";
-    let votes = [
-      { text: '😃 非常清楚 (聽懂了)', count: 0 },
-      { text: '😐 還好 (尚可理解)', count: 0 },
-      { text: '🙁 需加油 (還不太懂)', count: 0 }
-    ];
+    let currentIdx = 0;
     let isBlind = false;
     let pollFontSize = 1.0; // rem
 
-    const getRoom = () => window.realtimeEngine ? window.realtimeEngine.room : (localStorage.getItem('puti_classroom_room') || 'C1000');
+    // Default question bank
+    const defaultBank = [
+      {
+        question: "今日上課重點都聽懂了嗎？",
+        options: ["😃 非常清楚 (聽懂了)", "😐 還好 (尚可理解)", "🙁 需加油 (還不太懂)"],
+        votes: [0, 0, 0]
+      },
+      {
+        question: "下列哪一項是正確的乘法交換律概念？",
+        options: ["🅰️ a × b = b × a", "🅱️ (a + b) × c", "🅲️ a × (b × c)", "🅳️ a ÷ b = b ÷ a"],
+        votes: [0, 0, 0, 0]
+      },
+      {
+        question: "這週各組專案準備進行到哪個階段？",
+        options: ["👍 資料蒐集齊全", "🏃 進行報告統整中", "💪 準備正式彩排", "🆘 需要老師指導"],
+        votes: [0, 0, 0, 0]
+      }
+    ];
 
-    const templates = {
-      smile: { q: '今日學習理解程度評估：', opts: ['😃 非常清楚', '😐 尚可理解', '🙁 還需要練習'] },
-      thumbs: { q: '贊成進行這個提案嗎？', opts: ['👍 贊成', '👎 反對'] },
-      abcd: { q: '這題正確答案是哪一個？', opts: ['🅰️ 選項 A', '🅱️ 選項 B', '🅲️ 選項 C', '🅳️ 選項 D'] },
-      ox: { q: '請判斷下列敘述是非：', opts: ['⭕ 是 (正確)', '❌ 非 (錯誤)'] }
+    // Load or initialize question bank from localStorage
+    let questionBank = [];
+    try {
+      const savedBank = localStorage.getItem('puti_poll_question_bank');
+      if (savedBank) {
+        questionBank = JSON.parse(savedBank);
+      }
+    } catch (e) {}
+
+    if (!questionBank || !Array.isArray(questionBank) || questionBank.length === 0) {
+      questionBank = defaultBank;
+      localStorage.setItem('puti_poll_question_bank', JSON.stringify(questionBank));
+    }
+
+    const saveBank = () => {
+      localStorage.setItem('puti_poll_question_bank', JSON.stringify(questionBank));
     };
+
+    const getRoom = () => window.realtimeEngine ? window.realtimeEngine.room : (localStorage.getItem('puti_classroom_room') || 'C1000');
 
     const content = `
       <div class="poll-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
-        <!-- Top Controls: Templates + Font Scale Buttons -->
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
-          <!-- Template Chips -->
-          <div style="display: flex; gap: 4px; overflow-x: auto;">
-            <button class="preset-chip active" id="tpl-smile">😃 表情</button>
-            <button class="preset-chip" id="tpl-thumbs">👍 贊同</button>
-            <button class="preset-chip" id="tpl-abcd">🅰️ ABCD</button>
-            <button class="preset-chip" id="tpl-ox">⭕ 是非</button>
+        <!-- Top Bar: Room Code & Question Nav & Font Size -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #F8F9FA; padding: 6px 10px; border-radius: 10px; border: 1px solid #E9ECEF; flex-wrap: wrap; gap: 4px;">
+          <!-- Room Code Info & Change Button -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.74rem; font-weight: 800; color: #495057;">
+              <i class="fa-solid fa-tower-broadcast" style="color: #4EA8DE;"></i> 教室代碼: <strong id="poll-room-label" style="color: #1971C2; font-family: var(--font-num);">${getRoom()}</strong>
+            </span>
+            <button type="button" class="action-btn-secondary" id="poll-change-room-btn" style="height: 22px; padding: 0 6px; font-size: 0.68rem;" title="更換教室房間代碼（全國各班獨立隔離，不互相干擾）">
+              <i class="fa-solid fa-arrows-rotate"></i> 換代碼
+            </button>
           </div>
 
-          <!-- Font Scaling Controls (使用者要求：字體放大功能) -->
+          <!-- Font Scaling Controls -->
           <div class="font-scale-controls" style="display: flex; gap: 3px; align-items: center;">
             <span style="font-size: 0.72rem; color: #718096; font-weight: bold;"><i class="fa-solid fa-text-height"></i> 字級:</span>
             <button type="button" class="font-scale-btn" id="poll-font-minus" style="width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #CED4DA; background: #FFF; cursor: pointer;" title="縮小投票字級">A-</button>
@@ -856,22 +940,44 @@ const ClassroomWidgets = {
           </div>
         </div>
 
+        <!-- Question Navigation Bar (切換題目 / 題庫管理) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #EBF8FF; padding: 6px 10px; border-radius: 10px; border: 1.5px solid #BEE3F8; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="action-btn-secondary" id="poll-prev-q-btn" style="height: 26px; padding: 0 8px; font-size: 0.75rem;" title="上一題">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span id="poll-index-badge" style="font-size: 0.8rem; font-weight: 900; color: #2B6CB0; font-family: var(--font-num);">第 1 / 1 題</span>
+            <button type="button" class="action-btn-secondary" id="poll-next-q-btn" style="height: 26px; padding: 0 8px; font-size: 0.75rem;" title="下一題">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 4px;">
+            <button type="button" class="action-btn-secondary" id="poll-add-q-btn" style="height: 26px; padding: 0 8px; font-size: 0.75rem;" title="新增題目">
+              <i class="fa-solid fa-plus"></i> 新增題
+            </button>
+            <button type="button" class="action-btn-secondary" id="poll-bank-modal-btn" style="height: 26px; padding: 0 8px; font-size: 0.75rem; background: #3182CE; color: #FFF; border-color: #2B6CB0;" title="批次匯入/匯出題庫 (純文字或JSON)">
+              <i class="fa-solid fa-file-import"></i> 題庫匯入/匯出
+            </button>
+          </div>
+        </div>
+
         <!-- Question Input -->
-        <input type="text" class="poll-question-input" id="poll-q-input" value="${question}" placeholder="在此輸入投票題目..." style="width: 100%; padding: 8px 12px; font-size: 1.05rem; font-weight: 800; border: 2px solid #E2E8F0; border-radius: 10px; outline: none; background: #FFF;">
+        <input type="text" class="poll-question-input" id="poll-q-input" value="" placeholder="在此輸入投票題目..." style="width: 100%; padding: 8px 12px; font-size: 1.05rem; font-weight: 800; border: 2px solid #E2E8F0; border-radius: 10px; outline: none; background: #FFF;">
 
         <!-- Options Voting List -->
         <div class="poll-options-list" id="poll-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;"></div>
 
         <!-- Bottom Actions -->
         <div style="display: flex; gap: 6px; margin-top: 4px;">
-          <button class="action-btn-main" id="poll-qr-big-btn" style="flex: 1.4; height: 34px; font-size: 0.82rem;">
+          <button class="action-btn-main" id="poll-qr-big-btn" style="flex: 1.4; height: 36px; font-size: 0.84rem; background: linear-gradient(135deg, #1971C2, #4EA8DE);">
             <i class="fa-solid fa-expand"></i> 學生手機掃碼投票
           </button>
-          <button class="action-btn-secondary" id="poll-blind-toggle-btn" style="height: 34px; font-size: 0.82rem; padding: 0 10px;" title="盲投模式 (隱藏長條圖)">
+          <button class="action-btn-secondary" id="poll-blind-toggle-btn" style="height: 36px; font-size: 0.84rem; padding: 0 10px;" title="盲投模式 (隱藏長條圖)">
             <i class="fa-solid fa-eye-slash"></i> 盲投
           </button>
-          <button class="action-btn-secondary" id="poll-reset-btn" style="height: 34px; font-size: 0.82rem; padding: 0 10px;" title="重置票數">
-            <i class="fa-solid fa-rotate-left"></i>
+          <button class="action-btn-secondary" id="poll-reset-btn" style="height: 36px; font-size: 0.84rem; padding: 0 10px;" title="重置本題票數">
+            <i class="fa-solid fa-rotate-left"></i> 重置票數
           </button>
         </div>
       </div>
@@ -881,8 +987,8 @@ const ClassroomWidgets = {
       title: '課堂即時投票',
       icon: 'fa-square-poll-vertical',
       iconColor: '#4EA8DE',
-      width: 440,
-      height: 440,
+      width: 480,
+      height: 490,
       type: 'poll',
       contentHtml: content,
       onInit: (el) => {
@@ -891,15 +997,47 @@ const ClassroomWidgets = {
         const resetBtn = el.querySelector('#poll-reset-btn');
         const qrBigBtn = el.querySelector('#poll-qr-big-btn');
         const blindToggleBtn = el.querySelector('#poll-blind-toggle-btn');
+        const roomLabel = el.querySelector('#poll-room-label');
+        const changeRoomBtn = el.querySelector('#poll-change-room-btn');
+
+        const prevBtn = el.querySelector('#poll-prev-q-btn');
+        const nextBtn = el.querySelector('#poll-next-q-btn');
+        const idxBadge = el.querySelector('#poll-index-badge');
+        const addQBtn = el.querySelector('#poll-add-q-btn');
+        const bankModalBtn = el.querySelector('#poll-bank-modal-btn');
 
         const fontPlusBtn = el.querySelector('#poll-font-plus');
         const fontMinusBtn = el.querySelector('#poll-font-minus');
         const fontResetBtn = el.querySelector('#poll-font-reset');
 
-        const room = getRoom();
+        let room = getRoom();
+
+        // Change Room Code
+        changeRoomBtn.addEventListener('click', () => {
+          const newRoom = prompt('請輸入自訂教室代碼（例如：PUTI601、CLASS2）：', room);
+          if (newRoom && newRoom.trim()) {
+            room = newRoom.trim().toUpperCase();
+            localStorage.setItem('puti_classroom_room', room);
+            roomLabel.textContent = room;
+            if (window.realtimeEngine) {
+              window.realtimeEngine.room = room;
+              window.realtimeEngine.initMqtt();
+            }
+            alert(`教室代碼已變更為【${room}】！學生重新掃碼即可連線。`);
+          }
+        });
+
+        const syncCurrentToBank = () => {
+          if (!questionBank[currentIdx]) return;
+          questionBank[currentIdx].question = qInput.value.trim();
+          saveBank();
+        };
 
         const broadcastPoll = () => {
-          const pollData = { question: qInput.value.trim(), options: votes.map(v => v.text) };
+          syncCurrentToBank();
+          const cur = questionBank[currentIdx];
+          if (!cur) return;
+          const pollData = { question: cur.question, options: cur.options };
           localStorage.setItem('puti_active_poll', JSON.stringify(pollData));
           if (window.realtimeEngine) {
             window.realtimeEngine.publish('poll/state', { type: 'POLL_SYNC', poll: pollData });
@@ -907,21 +1045,33 @@ const ClassroomWidgets = {
         };
 
         const render = () => {
-          const totalVotes = votes.reduce((sum, v) => sum + v.count, 0);
+          if (currentIdx >= questionBank.length) currentIdx = questionBank.length - 1;
+          if (currentIdx < 0) currentIdx = 0;
 
-          // Apply font size to question
+          const cur = questionBank[currentIdx];
+          if (!cur) return;
+
+          idxBadge.textContent = `第 ${currentIdx + 1} / ${questionBank.length} 題`;
+          qInput.value = cur.question;
           qInput.style.fontSize = (pollFontSize * 1.05) + 'rem';
 
-          listEl.innerHTML = votes.map((v, i) => {
-            const pct = totalVotes > 0 ? Math.round((v.count / totalVotes) * 100) : 0;
+          if (!cur.votes || cur.votes.length !== cur.options.length) {
+            cur.votes = cur.options.map(() => 0);
+          }
+
+          const totalVotes = cur.votes.reduce((sum, v) => sum + v, 0);
+
+          listEl.innerHTML = cur.options.map((opt, i) => {
+            const count = cur.votes[i] || 0;
+            const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
             return `
               <div class="poll-opt-row" style="background: #FFF; border: 1.5px solid #E9ECEF; border-radius: 12px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <button type="button" class="poll-opt-btn" data-idx="${i}" style="border: none; background: none; font-weight: 800; font-size: ${pollFontSize}rem; color: #2D3748; cursor: pointer; text-align: left; padding: 0;">
-                    ${v.text}
+                    ${opt}
                   </button>
                   <span style="color: #FF7B00; font-weight: 900; font-size: ${pollFontSize * 0.95}rem; font-family: var(--font-num);">
-                    ${isBlind ? '🔒 盲投中' : `${v.count} 票 (${pct}%)`}
+                    ${isBlind ? '🔒 盲投中' : `${count} 票 (${pct}%)`}
                   </span>
                 </div>
                 <div class="poll-bar-outer" style="height: 10px; background: #EDF2F7; border-radius: 999px; overflow: hidden; margin-top: 2px; ${isBlind ? 'opacity: 0.3;' : ''}">
@@ -935,7 +1085,8 @@ const ClassroomWidgets = {
           listEl.querySelectorAll('.poll-opt-btn').forEach(btn => {
             btn.addEventListener('click', () => {
               const idx = parseInt(btn.dataset.idx, 10);
-              votes[idx].count++;
+              cur.votes[idx] = (cur.votes[idx] || 0) + 1;
+              saveBank();
               window.soundEngine.playTick();
               render();
             });
@@ -959,23 +1110,44 @@ const ClassroomWidgets = {
           window.soundEngine.playPop();
         });
 
-        // Template chips
-        el.querySelectorAll('.preset-chip').forEach(chip => {
-          chip.addEventListener('click', () => {
-            el.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            const key = chip.id.replace('tpl-', '');
-            if (templates[key]) {
-              qInput.value = templates[key].q;
-              votes = templates[key].opts.map(o => ({ text: o, count: 0 }));
-              render();
-              broadcastPoll();
-              window.soundEngine.playPop();
-            }
-          });
+        // Question navigation
+        prevBtn.addEventListener('click', () => {
+          if (currentIdx > 0) {
+            currentIdx--;
+            render();
+            broadcastPoll();
+            window.soundEngine.playPop();
+          }
         });
 
-        qInput.addEventListener('input', broadcastPoll);
+        nextBtn.addEventListener('click', () => {
+          if (currentIdx < questionBank.length - 1) {
+            currentIdx++;
+            render();
+            broadcastPoll();
+            window.soundEngine.playPop();
+          }
+        });
+
+        addQBtn.addEventListener('click', () => {
+          const qText = prompt('請輸入新題目名稱：', `課堂思考題 ${questionBank.length + 1}`);
+          if (!qText || !qText.trim()) return;
+          questionBank.push({
+            question: qText.trim(),
+            options: ['🅰️ 選項 A', '🅱️ 選項 B', '🅲️ 選項 C', '🅳️ 選項 D'],
+            votes: [0, 0, 0, 0]
+          });
+          currentIdx = questionBank.length - 1;
+          saveBank();
+          render();
+          broadcastPoll();
+          window.soundEngine.playBell();
+        });
+
+        qInput.addEventListener('input', () => {
+          syncCurrentToBank();
+          broadcastPoll();
+        });
 
         blindToggleBtn.addEventListener('click', () => {
           isBlind = !isBlind;
@@ -989,12 +1161,16 @@ const ClassroomWidgets = {
         });
 
         resetBtn.addEventListener('click', () => {
-          votes.forEach(v => v.count = 0);
-          render();
-          if (window.realtimeEngine) {
-            window.realtimeEngine.publish('poll/state', { type: 'POLL_RESET' });
+          const cur = questionBank[currentIdx];
+          if (cur) {
+            cur.votes = cur.options.map(() => 0);
+            saveBank();
+            render();
+            if (window.realtimeEngine) {
+              window.realtimeEngine.publish('poll/state', { type: 'POLL_RESET' });
+            }
+            window.soundEngine.playTick();
           }
-          window.soundEngine.playTick();
         });
 
         qrBigBtn.addEventListener('click', () => {
@@ -1005,13 +1181,151 @@ const ClassroomWidgets = {
           }
         });
 
+        // Question Bank Modal (純文字批次匯入 / JSON匯出匯入)
+        bankModalBtn.addEventListener('click', () => {
+          const modalBackdrop = document.createElement('div');
+          modalBackdrop.className = 'modal-backdrop active';
+          modalBackdrop.style.zIndex = '10006';
+
+          modalBackdrop.innerHTML = `
+            <div class="modal-box" style="max-width: 580px; width: 90%; background: #FFF; border-radius: 20px; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #EDF2F7; padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1.2rem; font-weight: 900; color: #2D3748;"><i class="fa-solid fa-folder-open" style="color: #3182CE;"></i> 投票題庫管理與批次匯入</h3>
+                <button type="button" id="modal-close-x" style="background: none; border: none; font-size: 1.2rem; color: #A0AEC0; cursor: pointer;">&times;</button>
+              </div>
+
+              <!-- Format Guide -->
+              <div style="background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; color: #2B6CB0; line-height: 1.5;">
+                <strong>💡 純文字匯入格式（一行一題，題目與選項用 <code>|</code> 隔開）：</strong><br>
+                <code>地球自轉一圈需要多久？ | 12小時 | 24小時 | 365天</code><br>
+                <code>下列何者不是哺乳類動物？ | 鯨魚 | 企鵝 | 蝙蝠 | 狗</code>
+              </div>
+
+              <!-- Textarea for Batch Text Import -->
+              <textarea id="batch-text-input" rows="6" style="width: 100%; border: 2px solid #CBD5E0; border-radius: 10px; padding: 10px; font-size: 0.88rem; font-family: monospace; outline: none;" placeholder="在此貼上您的多道題目文字..."></textarea>
+
+              <!-- Actions: Batch Text Import, JSON Export, JSON Import -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="action-btn-main" id="btn-import-text" style="flex: 1.4; height: 36px; font-size: 0.84rem; background: #3182CE;">
+                  <i class="fa-solid fa-file-import"></i> 解析並匯入文字題庫
+                </button>
+                <button type="button" class="action-btn-secondary" id="btn-export-json" style="flex: 1; height: 36px; font-size: 0.84rem;">
+                  <i class="fa-solid fa-download"></i> 匯出 JSON
+                </button>
+                <label class="action-btn-secondary" style="flex: 1; height: 36px; font-size: 0.84rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;">
+                  <i class="fa-solid fa-upload"></i> 匯入 JSON
+                  <input type="file" id="json-file-input" accept=".json" style="display: none;">
+                </label>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #EDF2F7; padding-top: 10px;">
+                <button type="button" class="action-btn-secondary" id="btn-clear-bank" style="color: #E53E3E; border-color: #FEB2B2; height: 30px; font-size: 0.78rem;">
+                  <i class="fa-solid fa-trash"></i> 重置回預設題庫
+                </button>
+                <button type="button" class="action-btn-secondary" id="modal-close-btn" style="height: 30px; font-size: 0.78rem; padding: 0 16px;">
+                  關閉
+                </button>
+              </div>
+            </div>
+          `;
+
+          document.body.appendChild(modalBackdrop);
+
+          const closeModal = () => modalBackdrop.remove();
+          modalBackdrop.querySelector('#modal-close-x').addEventListener('click', closeModal);
+          modalBackdrop.querySelector('#modal-close-btn').addEventListener('click', closeModal);
+
+          // 1. Batch Text Import
+          modalBackdrop.querySelector('#btn-import-text').addEventListener('click', () => {
+            const raw = modalBackdrop.querySelector('#batch-text-input').value.trim();
+            if (!raw) return alert('請先貼入文字題目！');
+
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const parsed = [];
+            lines.forEach(line => {
+              const parts = line.split('|').map(p => p.trim()).filter(p => p.length > 0);
+              if (parts.length >= 2) {
+                parsed.push({
+                  question: parts[0],
+                  options: parts.slice(1),
+                  votes: parts.slice(1).map(() => 0)
+                });
+              }
+            });
+
+            if (parsed.length === 0) {
+              return alert('解析失敗！請確保每行至少有題目與一個選項，並用「|」分隔。');
+            }
+
+            questionBank = parsed;
+            currentIdx = 0;
+            saveBank();
+            render();
+            broadcastPoll();
+            window.soundEngine.playBell();
+            closeModal();
+            alert(`成功匯入 ${parsed.length} 道投票題目！`);
+          });
+
+          // 2. Export JSON
+          modalBackdrop.querySelector('#btn-export-json').addEventListener('click', () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questionBank, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `puti-poll-bank-${new Date().toISOString().slice(0,10)}.json`);
+            dlAnchor.click();
+            dlAnchor.remove();
+          });
+
+          // 3. Import JSON
+          modalBackdrop.querySelector('#json-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              try {
+                const imported = JSON.parse(evt.target.result);
+                if (Array.isArray(imported) && imported.length > 0 && imported[0].question && imported[0].options) {
+                  questionBank = imported;
+                  currentIdx = 0;
+                  saveBank();
+                  render();
+                  broadcastPoll();
+                  window.soundEngine.playBell();
+                  closeModal();
+                  alert(`成功從 JSON 匯入 ${imported.length} 道題庫！`);
+                } else {
+                  alert('JSON 格式不符！請確保包含 question 與 options 陣列。');
+                }
+              } catch (err) {
+                alert('JSON 解析失敗，請確認檔案格式是否正確。');
+              }
+            };
+            reader.readAsText(file);
+          });
+
+          // 4. Reset to Default Bank
+          modalBackdrop.querySelector('#btn-clear-bank').addEventListener('click', () => {
+            if (confirm('確定要清除自訂題庫並恢復預設題庫嗎？')) {
+              questionBank = defaultBank;
+              currentIdx = 0;
+              saveBank();
+              render();
+              broadcastPoll();
+              window.soundEngine.playTick();
+              closeModal();
+            }
+          });
+        });
+
         // Realtime Listener for Mobile Students Voting
         if (window.realtimeEngine) {
           window.realtimeEngine.subscribe('poll/vote', (data) => {
             if (data.type === 'VOTE_SUBMITTED') {
-              const idx = data.optionIndex;
-              if (votes[idx]) {
-                votes[idx].count++;
+              const cur = questionBank[currentIdx];
+              if (cur && cur.votes && cur.votes[data.optionIndex] !== undefined) {
+                cur.votes[data.optionIndex]++;
+                saveBank();
                 window.soundEngine.playPop();
                 render();
               }
