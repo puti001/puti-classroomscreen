@@ -322,15 +322,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     libGrid.innerHTML = list.map(w => `
-      <div class="widget-card-item" data-id="${w.id}">
-        <div class="widget-card-item-top">
-          <div class="widget-card-icon" style="background: ${w.color}18; color: ${w.color};">
-            <i class="fa-solid ${w.icon}"></i>
-          </div>
-          <span class="widget-card-badge">${getCategoryBadge(w.category)}</span>
+      <div class="widget-card-item" data-id="${w.id}" title="${w.name}：${w.desc}">
+        <div class="widget-card-icon" style="background: ${w.color}18; color: ${w.color};">
+          <i class="fa-solid ${w.icon}"></i>
         </div>
-        <div class="widget-card-title">${w.name}</div>
-        <div class="widget-card-desc">${w.desc}</div>
+        <div class="widget-card-info">
+          <div class="widget-card-title">${w.name}</div>
+        </div>
+        <span class="widget-card-badge">${getCategoryBadge(w.category)}</span>
       </div>
     `).join('');
 
