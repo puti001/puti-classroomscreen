@@ -196,12 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   const soundToggleBtn = document.getElementById('btn-toggle-sound');
   const fullscreenBtn = document.getElementById('btn-fullscreen');
-  const resetLayoutBtn =   // User Guide Modal
-  document.getElementById('btn-user-guide')?.addEventListener('click', () => {
+  const resetLayoutBtn = document.getElementById('btn-reset-layout');
+  const userGuideBtn = document.getElementById('btn-user-guide');
+
+  // User Guide Modal
+  userGuideBtn?.addEventListener('click', () => {
     ClassroomWidgets.spawnUserGuide(wm);
   });
-
-  document.getElementById('btn-reset-layout');
   const tickerText = document.getElementById('classroom-ticker');
   const toggleDesktopBtn = document.getElementById('btn-toggle-desktop');
 
