@@ -50,7 +50,14 @@
         <div id="custom-scenarios-bar" style="display: inline-flex; gap: 4px; align-items: center;"></div>
         <button class="scale-btn" id="scen-save-current" style="color: #2B8A3E; font-weight: 800;" title="將目前桌面擺設儲存為新情境"><i class="fa-solid fa-plus"></i> 存情境</button>
         <button class="scale-btn" id="scen-manage-btn" style="color: #495057;" title="管理自訂情境"><i class="fa-solid fa-gear"></i></button>
-        <button class="scale-btn" id="btn-global-roster" style="color: #FF7B00; font-weight: 800;" title="設定全班共用名單（抽籤、分組、個人計分全域共用）"><i class="fa-solid fa-users-line"></i> 班級名單</button>
+        <div class="class-selector-wrap" style="display: inline-flex; align-items: center; background: #FFF7ED; padding: 2px 6px; border-radius: var(--radius-pill); border: 1.5px solid #FFD8A8; gap: 3px;">
+          <i class="fa-solid fa-graduation-cap" style="color: #EA580C; font-size: 0.8rem; margin-left: 2px;"></i>
+          <select id="global-class-select" style="border: none; background: transparent; font-weight: 800; color: #C2410C; font-size: 0.8rem; cursor: pointer; outline: none; max-width: 96px;" title="切換上課班級（抽籤、分組、計分連動切換）">
+          </select>
+          <button class="scale-btn" id="btn-global-roster" style="color: #E8590C; font-weight: 800; padding: 1px 6px; font-size: 0.74rem; background: #FFF; border-radius: 6px; border: 1px solid #FFD8A8;" title="管理班級與編輯名冊">
+            <i class="fa-solid fa-gear"></i> 名冊
+          </button>
+        </div>
       </div>
 
       <!-- Screen Font Scale Switcher -->
@@ -190,9 +197,23 @@
     <div class="modal-box" style="max-width: 520px; width: 92%; max-height: 88vh; display: flex; flex-direction: column;">
       <div class="modal-header">
         <div class="modal-title">
-          <i class="fa-solid fa-users-line" style="color: #FF7B00;"></i> 全班學生名單設定（一行一位同學）
+          <i class="fa-solid fa-users-line" style="color: #FF7B00;"></i> 多班級學生名冊管理（抽籤/分組/計分共用）
         </div>
         <button class="win-btn btn-close" id="roster-modal-close" title="關閉"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- 多班級切換與管理控制列 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #FFF7ED; padding: 8px 12px; border-radius: 10px; border: 1.5px solid #FFD8A8; margin-bottom: 10px; gap: 6px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 0.82rem; font-weight: 800; color: #C2410C;"><i class="fa-solid fa-graduation-cap"></i> 當前班級：</label>
+          <select id="modal-class-select" style="padding: 3px 8px; border-radius: 6px; border: 1px solid #FFC078; font-weight: 800; color: #9A3412; background: #FFF; font-size: 0.85rem; outline: none; cursor: pointer;">
+          </select>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button type="button" class="action-btn-secondary" id="modal-class-add-btn" style="height: 28px; padding: 0 8px; font-size: 0.75rem; border-color: #FDBA74;" title="新增班級"><i class="fa-solid fa-plus"></i> 新增班級</button>
+          <button type="button" class="action-btn-secondary" id="modal-class-rename-btn" style="height: 28px; padding: 0 8px; font-size: 0.75rem; border-color: #FDBA74;" title="重命名當前班級"><i class="fa-solid fa-pen"></i> 改名</button>
+          <button type="button" class="action-btn-secondary" id="modal-class-del-btn" style="height: 28px; padding: 0 8px; font-size: 0.75rem; border-color: #FCA5A5; color: #DC2626;" title="刪除當前班級"><i class="fa-solid fa-trash-can"></i> 刪除</button>
+        </div>
       </div>
 
       <div style="font-size: 0.85rem; color: #4A5568; margin-bottom: 8px;">
@@ -206,6 +227,8 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 8px;">
         <div style="font-size: 0.85rem; font-weight: 800; color: #D9480F;" id="roster-count-info">目前共 0 位同學</div>
         <div style="display: flex; gap: 6px;">
+          <button type="button" class="action-btn-secondary" id="roster-export-btn" style="height: 34px; font-size: 0.8rem; padding: 0 8px;" title="備份所有班級資料"><i class="fa-solid fa-download"></i> 匯出多班</button>
+          <button type="button" class="action-btn-secondary" id="roster-import-btn" style="height: 34px; font-size: 0.8rem; padding: 0 8px;" title="還原多班級備份"><i class="fa-solid fa-upload"></i> 匯入多班</button>
           <button type="button" class="action-btn-secondary" id="roster-fill-30-btn" style="height: 34px; font-size: 0.8rem; padding: 0 10px;">填入 1~30 號</button>
           <button type="button" class="action-btn-secondary" id="roster-clear-btn" style="height: 34px; font-size: 0.8rem; padding: 0 10px;">清空</button>
           <button type="button" class="action-btn-main" id="roster-save-btn" style="height: 34px; font-size: 0.85rem; padding: 0 16px;"><i class="fa-solid fa-check"></i> 儲存名單</button>

@@ -394,7 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================================================================
-  // 4.5 Global Student Roster Editor (一行一個名單編輯器)
+  // =========================================================================
+  // 4.5 Multi-Class & Global Student Roster Manager (多班級與全班名單管理器)
   // =========================================================================
   const rosterModal = document.getElementById('roster-modal');
   const rosterCloseBtn = document.getElementById('roster-modal-close');
@@ -403,13 +404,224 @@ document.addEventListener('DOMContentLoaded', () => {
   const rosterFill30Btn = document.getElementById('roster-fill-30-btn');
   const rosterClearBtn = document.getElementById('roster-clear-btn');
   const rosterSaveBtn = document.getElementById('roster-save-btn');
+  const globalClassSelect = document.getElementById('global-class-select');
+  const modalClassSelect = document.getElementById('modal-class-select');
+  const modalClassAddBtn = document.getElementById('modal-class-add-btn');
+  const modalClassRenameBtn = document.getElementById('modal-class-rename-btn');
+  const modalClassDelBtn = document.getElementById('modal-class-del-btn');
+  const rosterExportBtn = document.getElementById('roster-export-btn');
+  const rosterImportBtn = document.getElementById('roster-import-btn');
+  const globalRosterBtn = document.getElementById('btn-global-roster');
 
-  let rosterSaveCallback = null;
+  // 多班級預設資料
+  const defaultClassesData = {
+    activeId: 'class_1',
+    classes: [
+      {
+        id: 'class_1',
+        name: '501 班',
+        roster: Array.from({ length: 30 }, (_, i) => `${i + 1} 號同學`)
+      },
+      {
+        id: 'class_2',
+        name: '502 班',
+        roster: Array.from({ length: 30 }, (_, i) => `${i + 1} 號同學`)
+      },
+      {
+        id: 'class_3',
+        name: '503 班',
+        roster: Array.from({ length: 30 }, (_, i) => `${i + 1} 號同學`)
+      }
+    ]
+  };
+
+  // 讀取班級資料（自動相容舊單班名冊）
+  let classManagerData = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('puti_classes_data'));
+      if (saved && saved.classes && Array.isArray(saved.classes) && saved.classes.length > 0) {
+        return saved;
+      }
+    } catch (e) {}
+
+    const initData = JSON.parse(JSON.stringify(defaultClassesData));
+    try {
+      const oldRoster = JSON.parse(localStorage.getItem('puti_student_roster'));
+      if (oldRoster && Array.isArray(oldRoster) && oldRoster.length > 0) {
+        initData.classes[0].name = '本班 (501)';
+        initData.classes[0].roster = oldRoster;
+      }
+    } catch (e) {}
+    return initData;
+  })();
+
+  const getActiveClass = () => {
+    return classManagerData.classes.find(c => c.id === classManagerData.activeId) || classManagerData.classes[0];
+  };
+
+  const persistAndBroadcast = () => {
+    localStorage.setItem('puti_classes_data', JSON.stringify(classManagerData));
+    const active = getActiveClass();
+    if (active) {
+      localStorage.setItem('puti_student_roster', JSON.stringify(active.roster));
+      window.dispatchEvent(new CustomEvent('rosterUpdated', { detail: active.roster }));
+    }
+  };
+
+  const renderClassSelects = () => {
+    const optionsHtml = classManagerData.classes.map(c => `
+      <option value="${c.id}" ${c.id === classManagerData.activeId ? 'selected' : ''}>${c.name}</option>
+    `).join('');
+
+    if (globalClassSelect) globalClassSelect.innerHTML = optionsHtml;
+    if (modalClassSelect) modalClassSelect.innerHTML = optionsHtml;
+  };
+
+  const switchActiveClass = (classId) => {
+    const target = classManagerData.classes.find(c => c.id === classId);
+    if (!target) return;
+    classManagerData.activeId = classId;
+    renderClassSelects();
+    persistAndBroadcast();
+
+    if (rosterTextarea && rosterModal && rosterModal.classList.contains('show')) {
+      rosterTextarea.value = target.roster.join('\n');
+      updateRosterCount();
+    }
+    if (window.soundEngine) window.soundEngine.playPop();
+  };
 
   const updateRosterCount = () => {
+    if (!rosterTextarea || !rosterCountInfo) return;
     const list = rosterTextarea.value.split('\n').map(s => s.trim()).filter(Boolean);
-    rosterCountInfo.textContent = `目前共 ${list.length} 位同學`;
+    const active = getActiveClass();
+    const className = active ? `【${active.name}】` : '';
+    rosterCountInfo.textContent = `${className} 目前共 ${list.length} 位同學`;
   };
+
+  // 頂部班級下拉選單切換
+  if (globalClassSelect) {
+    globalClassSelect.addEventListener('change', (e) => {
+      switchActiveClass(e.target.value);
+    });
+  }
+
+  // Modal 內班級下拉選單切換（先自動存前一班名單）
+  if (modalClassSelect) {
+    modalClassSelect.addEventListener('change', (e) => {
+      if (rosterTextarea) {
+        const cur = getActiveClass();
+        if (cur) {
+          const list = rosterTextarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+          if (list.length > 0) cur.roster = list;
+        }
+      }
+      switchActiveClass(e.target.value);
+    });
+  }
+
+  // 新增班級
+  if (modalClassAddBtn) {
+    modalClassAddBtn.addEventListener('click', () => {
+      const name = prompt('請輸入新班級名稱（例如 504 班、音樂社團、六年五班）：', `班級 ${classManagerData.classes.length + 1}`);
+      if (!name || !name.trim()) return;
+      const newId = 'class_' + Date.now();
+      const newClass = {
+        id: newId,
+        name: name.trim(),
+        roster: Array.from({ length: 30 }, (_, i) => `${i + 1} 號同學`)
+      };
+      classManagerData.classes.push(newClass);
+      switchActiveClass(newId);
+    });
+  }
+
+  // 重命名班級
+  if (modalClassRenameBtn) {
+    modalClassRenameBtn.addEventListener('click', () => {
+      const active = getActiveClass();
+      if (!active) return;
+      const newName = prompt(`修改【${active.name}】的名稱為：`, active.name);
+      if (!newName || !newName.trim()) return;
+      active.name = newName.trim();
+      renderClassSelects();
+      persistAndBroadcast();
+      updateRosterCount();
+      if (window.soundEngine) window.soundEngine.playTick();
+    });
+  }
+
+  // 刪除班級
+  if (modalClassDelBtn) {
+    modalClassDelBtn.addEventListener('click', () => {
+      if (classManagerData.classes.length <= 1) {
+        alert('至少需保留一個班級，無法刪除！');
+        return;
+      }
+      const active = getActiveClass();
+      if (!active) return;
+      if (confirm(`確定要刪除【${active.name}】及其所有名冊資料嗎？`)) {
+        classManagerData.classes = classManagerData.classes.filter(c => c.id !== active.id);
+        classManagerData.activeId = classManagerData.classes[0].id;
+        renderClassSelects();
+        persistAndBroadcast();
+        const nextActive = getActiveClass();
+        if (rosterTextarea && nextActive) {
+          rosterTextarea.value = nextActive.roster.join('\n');
+          updateRosterCount();
+        }
+        if (window.soundEngine) window.soundEngine.playPop();
+      }
+    });
+  }
+
+  // 匯出多班級備份
+  if (rosterExportBtn) {
+    rosterExportBtn.addEventListener('click', () => {
+      const active = getActiveClass();
+      if (active && rosterTextarea) {
+        const list = rosterTextarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+        if (list.length > 0) active.roster = list;
+      }
+      persistAndBroadcast();
+      const jsonStr = JSON.stringify(classManagerData, null, 2);
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        alert('✅ 已將全班級名冊備份複製到剪貼簿！可貼到記事本隨身保存。');
+      }).catch(() => {
+        prompt('請手動複製下列多班級備份 JSON 代碼：', jsonStr);
+      });
+    });
+  }
+
+  // 匯入多班級備份
+  if (rosterImportBtn) {
+    rosterImportBtn.addEventListener('click', () => {
+      const input = prompt('請貼上多班級備份 JSON 字串：');
+      if (!input || !input.trim()) return;
+      try {
+        const parsed = JSON.parse(input.trim());
+        if (parsed && Array.isArray(parsed.classes) && parsed.classes.length > 0) {
+          classManagerData = parsed;
+          if (!classManagerData.classes.some(c => c.id === classManagerData.activeId)) {
+            classManagerData.activeId = classManagerData.classes[0].id;
+          }
+          renderClassSelects();
+          persistAndBroadcast();
+          const active = getActiveClass();
+          if (rosterTextarea && active) {
+            rosterTextarea.value = active.roster.join('\n');
+            updateRosterCount();
+          }
+          alert(`🎉 成功匯入 ${classManagerData.classes.length} 個班級資料！`);
+          if (window.soundEngine) window.soundEngine.playBell();
+        } else {
+          alert('格式不符，請確認是否為完整的多班級備份 JSON！');
+        }
+      } catch (err) {
+        alert('JSON 解析失敗，請確認貼上的文字格式是否正確！');
+      }
+    });
+  }
 
   if (rosterTextarea) {
     rosterTextarea.addEventListener('input', updateRosterCount);
@@ -420,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const demo = Array.from({ length: 30 }, (_, i) => `${i + 1} 號同學`).join('\n');
       rosterTextarea.value = demo;
       updateRosterCount();
-      window.soundEngine.playTick();
+      if (window.soundEngine) window.soundEngine.playTick();
     });
   }
 
@@ -428,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     rosterClearBtn.addEventListener('click', () => {
       rosterTextarea.value = '';
       updateRosterCount();
-      window.soundEngine.playTick();
+      if (window.soundEngine) window.soundEngine.playTick();
     });
   }
 
@@ -451,30 +663,39 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('請至少輸入一位學生姓名或號碼喔！');
         return;
       }
-      localStorage.setItem('puti_student_roster', JSON.stringify(cleanList));
-      rosterModal.classList.remove('show');
-      window.soundEngine.playBell();
-      if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 50 });
-
-      window.dispatchEvent(new CustomEvent('rosterUpdated', { detail: cleanList }));
-      if (typeof rosterSaveCallback === 'function') {
-        rosterSaveCallback(cleanList);
+      const active = getActiveClass();
+      if (active) {
+        active.roster = cleanList;
       }
+      persistAndBroadcast();
+      rosterModal.classList.remove('show');
+      if (window.soundEngine) window.soundEngine.playBell();
+      if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 50 });
     });
   }
 
-  window.openRosterEditor = (initialList, onSave) => {
-    rosterSaveCallback = onSave;
-    const list = initialList && initialList.length > 0
-      ? initialList
-      : (JSON.parse(localStorage.getItem('puti_student_roster') || 'null') || Array.from({ length: 30 }, (_, i) => `${i + 1} 號同學`));
-    
-    rosterTextarea.value = list.join('\n');
+  window.openRosterEditor = () => {
+    const active = getActiveClass();
+    renderClassSelects();
+    if (active && rosterTextarea) {
+      rosterTextarea.value = active.roster.join('\n');
+    }
     updateRosterCount();
     rosterModal.classList.add('show');
-    rosterTextarea.focus();
-    window.soundEngine.playTick();
+    if (rosterTextarea) rosterTextarea.focus();
+    if (window.soundEngine) window.soundEngine.playTick();
   };
+
+  if (globalRosterBtn) {
+    globalRosterBtn.addEventListener('click', () => {
+      window.openRosterEditor();
+    });
+  }
+
+  // 初始化多班級下拉選單與名冊廣播
+  renderClassSelects();
+  persistAndBroadcast();
+
 
   // =========================================================================
   // 5. Bottom Dock Direct Triggers
@@ -511,15 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-  // Global Roster Button in Topbar
-  const globalRosterBtn = document.getElementById('btn-global-roster');
-  if (globalRosterBtn) {
-    globalRosterBtn.addEventListener('click', () => {
-      if (typeof window.openRosterEditor === 'function') {
-        window.openRosterEditor();
-      }
-    });
-  }
+
 
   // =========================================================================
   // 5.5 Preset & Fully Customizable Classroom Scenarios
