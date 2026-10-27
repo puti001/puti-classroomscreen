@@ -50,6 +50,27 @@ class SoundEngine {
     osc.stop(this.ctx.currentTime + 0.04);
   }
 
+  // Pleasant bubble pop for UI switches & additions
+  playPop() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(450, now);
+    osc.frequency.exponentialRampToValueAtTime(900, now + 0.07);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  }
+
   // Traffic light bell ding
   playBell() {
     if (this.muted) return;

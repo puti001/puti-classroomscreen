@@ -271,8 +271,8 @@ const ClassroomWidgets = {
           const curVal = target.value;
           const start = target.selectionStart ?? curVal.length;
           const end = target.selectionEnd ?? curVal.length;
-          const needSpace = start > 0 && curVal[start - 1] !== ' ' && curVal[start - 1] !== '、';
-          const insertText = (needSpace ? ' ' : '') + tag;
+          const needSpace = start > 0 && curVal[start - 1] !== ' ' && curVal[start - 1] !== '\n';
+          const insertText = (needSpace ? ' ' : '') + tag + ' ';
 
           target.value = curVal.slice(0, start) + insertText + curVal.slice(end);
           target.focus();
@@ -759,10 +759,22 @@ const ClassroomWidgets = {
           }
         };
 
-        el.querySelector('#btn-dice-1').addEventListener('click', () => { mode = 'dice'; diceCount = 1; updateDisplay(); });
-        el.querySelector('#btn-dice-2').addEventListener('click', () => { mode = 'dice'; diceCount = 2; updateDisplay(); });
-        el.querySelector('#btn-dice-3').addEventListener('click', () => { mode = 'dice'; diceCount = 3; updateDisplay(); });
-        el.querySelector('#btn-dice-coin').addEventListener('click', () => { mode = 'coin'; updateDisplay(); });
+        const diceChips = [
+          { el: el.querySelector('#btn-dice-1'), count: 1, m: 'dice' },
+          { el: el.querySelector('#btn-dice-2'), count: 2, m: 'dice' },
+          { el: el.querySelector('#btn-dice-3'), count: 3, m: 'dice' },
+          { el: el.querySelector('#btn-dice-coin'), count: 1, m: 'coin' }
+        ];
+        diceChips.forEach(item => {
+          item.el.addEventListener('click', () => {
+            diceChips.forEach(c => c.el.classList.remove('active'));
+            item.el.classList.add('active');
+            mode = item.m;
+            diceCount = item.count;
+            updateDisplay();
+            window.soundEngine.playPop();
+          });
+        });
 
         rollBtn.addEventListener('click', () => {
           window.soundEngine.playDiceRoll();
@@ -1904,7 +1916,7 @@ const ClassroomWidgets = {
               animFrame = requestAnimationFrame(loop);
             };
             loop();
-          } catch(err) { alert('無法存取麥克風，請檢查瀏覽器授權！'); stopListening(); }
+          } catch(err) { alert('⚠️ 無法存取麥克風！請確認瀏覽器網址列已允許麥克風權限，或檢查設備是否已連接收音麥克風。'); stopListening(); }
         };
         toggleBtn.addEventListener('click', () => { if (audioStream) stopListening(); else startListening(); });
       },
@@ -2164,10 +2176,24 @@ const ClassroomWidgets = {
         penBtn.addEventListener('click', () => { isEraser = false; penBtn.classList.add('active'); eraserBtn.classList.remove('active'); });
         eraserBtn.addEventListener('click', () => { isEraser = true; eraserBtn.classList.add('active'); penBtn.classList.remove('active'); });
         const themes = ['', 'theme-blackboard', 'theme-grid']; let themeIdx = 0;
-        themeBtn.addEventListener('click', () => { wrapper.classList.remove(themes[themeIdx]); themeIdx = (themeIdx + 1) % themes.length; if (themes[themeIdx]) wrapper.classList.add(themes[themeIdx]); });
+        themeBtn.addEventListener('click', () => { if (themes[themeIdx]) wrapper.classList.remove(themes[themeIdx]); themeIdx = (themeIdx + 1) % themes.length; if (themes[themeIdx]) wrapper.classList.add(themes[themeIdx]); });
         undoBtn.addEventListener('click', () => { if (history.length > 0) ctx.putImageData(history.pop(), 0, 0); });
         clearBtn.addEventListener('click', () => { if (confirm('清空白板？')) ctx.clearRect(0, 0, canvas.width, canvas.height); });
-        exportBtn.addEventListener('click', () => { const a = document.createElement('a'); a.download = `白板_${Date.now()}.png`; a.href = canvas.toDataURL(); a.click(); });
+        exportBtn.addEventListener('click', () => {
+          try {
+            const a = document.createElement('a');
+            a.download = `白板_${Date.now()}.png`;
+            a.href = canvas.toDataURL('image/png');
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => document.body.removeChild(a), 100);
+            window.soundEngine.playPop();
+            exportBtn.innerHTML = '<i class="fa-solid fa-check"></i> 已匯出';
+            setTimeout(() => { exportBtn.innerHTML = '<i class="fa-solid fa-download"></i> 匯出'; }, 1500);
+          } catch (e) {
+            alert('匯出白板圖片失敗：' + e.message);
+          }
+        });
       }
     });
   },
@@ -2192,7 +2218,7 @@ const ClassroomWidgets = {
           ${sampleImages.map((s) => `<button class="preset-chip img-sample-btn" data-url="${s.url}" style="font-size: 0.75rem;">${s.name}</button>`).join('')}
         </div>
         <div style="flex: 1; background: #F8F6F0; border-radius: var(--radius-sm); border: 2px dashed var(--border-subtle); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;" id="img-view-box">
-          <img id="img-display" src="${sampleImages[0].url}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+          <img id="img-display" src="${sampleImages[0].url}" alt="課堂展示圖片" style="max-width: 100%; max-height: 100%; object-fit: contain;">
         </div>
       </div>
     `;
@@ -2221,7 +2247,10 @@ const ClassroomWidgets = {
     const stickers = ['💯', '🌟', '🎉', '🔥', '👑', '👍', '❤️', '👏', '🌈', '🏆', '🎯', '🚀', '⭐', '🦉', '🎨', '💡'];
     const content = `
       <div style="display: flex; flex-direction: column; height: 100%; gap: 10px;">
-        <div style="font-size: 0.82rem; color: var(--text-muted); text-align: center;">點擊貼紙，直接印章蓋在畫面上陪伴學生！</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">點擊貼紙蓋印，可拖曳放置：</span>
+          <button type="button" class="action-btn-secondary" id="stickers-clear-all-btn" style="height: 24px; font-size: 0.72rem; padding: 0 8px; color: #E03131; border-color: #FFA8A8;" title="清除桌面上所有已蓋出的貼紕"><i class="fa-solid fa-trash-can"></i> 清除全部貼紕</button>
+        </div>
         <div class="stickers-grid">
           ${stickers.map(s => `<div class="sticker-badge" data-emoji="${s}">${s}</div>`).join('')}
         </div>
@@ -2230,12 +2259,23 @@ const ClassroomWidgets = {
     wm.createWindow({
       title: '獎勵電子貼紙', icon: 'fa-award', iconColor: '#FFD166', width: 320, height: 320, type: 'stickers', contentHtml: content,
       onInit: (el) => {
+        const clearBtn = el.querySelector('#stickers-clear-all-btn');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            const allStamps = document.querySelectorAll('.puti-screen-sticker-stamp');
+            if (allStamps.length === 0) return alert('目前桌面上沒有蓋出的貼紕！');
+            if (confirm(`確定要清除桌面上的 ${allStamps.length} 張貼紕嗎？`)) {
+              allStamps.forEach(s => s.remove());
+              window.soundEngine.playPop();
+            }
+          });
+        }
         el.querySelectorAll('.sticker-badge').forEach(badge => {
           badge.addEventListener('click', () => {
             const emoji = badge.dataset.emoji;
             window.soundEngine.playFanfare();
             if (typeof confetti === 'function') confetti({ particleCount: 30, spread: 50 });
-            const stamp = document.createElement('div');
+            const stamp = document.createElement('div'); stamp.className = 'puti-screen-sticker-stamp';
             stamp.style.cssText = `position: absolute; left: ${Math.random()*300+100}px; top: ${Math.random()*200+80}px; font-size: 4.5rem; cursor: grab; user-select: none; z-index: 200; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.25)); animation: stampBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);`;
             stamp.textContent = emoji; stamp.title = '雙擊移除，按住拖曳';
             let isDragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
@@ -2413,7 +2453,7 @@ const ClassroomWidgets = {
             const id = deviceSelect.value;
             stream = await navigator.mediaDevices.getUserMedia({ video: id ? { deviceId: { exact: id } } : true });
             video.srcObject = stream; toggleBtn.innerHTML = '<i class="fa-solid fa-stop"></i> 關閉鏡頭'; toggleBtn.style.background = 'linear-gradient(135deg, #FF4757, #E84118)';
-          } catch(e) { alert('無法開啟相機！'); }
+          } catch(e) { alert('⚠️ 無法存取相機鏡頭！請確認瀏覽器網址列已允許相機權限，或檢查相機是否已被其他程式佔用。'); }
         };
         const stop = () => { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } video.srcObject = null; toggleBtn.innerHTML = '<i class="fa-solid fa-video"></i> 開啟鏡頭'; toggleBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)'; };
         toggleBtn.addEventListener('click', () => { if (stream) stop(); else start(); });
