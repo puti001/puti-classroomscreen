@@ -246,10 +246,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const savedTicker = localStorage.getItem('puti_cs_ticker');
-  if (savedTicker) tickerText.textContent = savedTicker;
-  tickerText.addEventListener('blur', () => {
-    localStorage.setItem('puti_cs_ticker', tickerText.textContent.trim());
-  });
+  if (savedTicker && tickerText) tickerText.textContent = savedTicker;
+  if (tickerText) {
+    tickerText.addEventListener('blur', () => {
+      localStorage.setItem('puti_cs_ticker', tickerText.textContent.trim());
+    });
+  }
 
   resetLayoutBtn.addEventListener('click', () => {
     if (confirm('確定要關閉所有現有工具視窗，並恢復預設排列嗎？')) {
