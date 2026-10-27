@@ -1184,7 +1184,7 @@ const ClassroomWidgets = {
         // Question Bank Modal (純文字批次匯入 / JSON匯出匯入)
         bankModalBtn.addEventListener('click', () => {
           const modalBackdrop = document.createElement('div');
-          modalBackdrop.className = 'modal-backdrop active';
+          modalBackdrop.className = 'modal-backdrop show'; modalBackdrop.style.display = 'flex'; modalBackdrop.style.opacity = '1';
           modalBackdrop.style.zIndex = '10006';
 
           modalBackdrop.innerHTML = `
@@ -1202,7 +1202,7 @@ const ClassroomWidgets = {
               </div>
 
               <!-- Textarea for Batch Text Import -->
-              <textarea id="batch-text-input" rows="6" style="width: 100%; border: 2px solid #CBD5E0; border-radius: 10px; padding: 10px; font-size: 0.88rem; font-family: monospace; outline: none;" placeholder="在此貼上您的多道題目文字..."></textarea>
+              <textarea id="batch-text-input" rows="7" style="width: 100%; border: 2px solid #CBD5E0; border-radius: 10px; padding: 10px; font-size: 0.88rem; font-family: monospace; outline: none;" placeholder="在此貼上您的多道題目文字...">${questionBank.map(q => q.question + ' | ' + q.options.join(' | ')).join('\n')}</textarea>
 
               <!-- Actions: Batch Text Import, JSON Export, JSON Import -->
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1269,12 +1269,18 @@ const ClassroomWidgets = {
 
           // 2. Export JSON
           modalBackdrop.querySelector('#btn-export-json').addEventListener('click', () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questionBank, null, 2));
+            const jsonStr = JSON.stringify(questionBank, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
             const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", `puti-poll-bank-${new Date().toISOString().slice(0,10)}.json`);
+            dlAnchor.href = url;
+            dlAnchor.download = `puti-poll-bank-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(dlAnchor);
             dlAnchor.click();
-            dlAnchor.remove();
+            setTimeout(() => {
+              document.body.removeChild(dlAnchor);
+              URL.revokeObjectURL(url);
+            }, 100);
           });
 
           // 3. Import JSON
