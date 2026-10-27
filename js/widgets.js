@@ -3328,26 +3328,30 @@ const ClassroomWidgets = {
           </div>
         </div>
 
-        <!-- 當前核心焦點看板 (科目極大化、時間等寬防抖動) -->
-        <div id="exam-hero-card" style="flex: 1; min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; position: relative; overflow: hidden;">
-          <div id="exam-status-badge" style="display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; background: #3b82f6; margin-bottom: 6px; transition: background 0.3s;">
+        <!-- 當前核心焦點看板 (科目極大化、物理獨立數字單元格 0 抖動) -->
+        <div id="exam-hero-card" style="flex: 1; min-height: 155px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; position: relative; overflow: hidden;">
+          <div id="exam-status-badge" style="display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; background: #3b82f6; margin-bottom: 4px; transition: background 0.3s;">
             正在準備中
           </div>
           
-          <!-- 超大科目文字 (可縮放，預設大醒目) -->
+          <!-- 超大科目文字 (可縮放，預設超大醒目) -->
           <div id="exam-subject-display" style="font-size: 2.8rem; font-weight: 900; letter-spacing: 3px; color: #f8fafc; text-shadow: 0 2px 10px rgba(0,0,0,0.5); line-height: 1.1; margin: 4px 0; transition: font-size 0.2s;">
             --
           </div>
-          <div id="exam-period-info" style="font-size: 0.95rem; color: #94a3b8; font-weight: 600; margin-bottom: 6px;">
+          <div id="exam-period-info" style="font-size: 0.95rem; color: #94a3b8; font-weight: 600; margin-bottom: 4px;">
             --:-- ~ --:--
           </div>
 
-          <!-- 超大倒數計時數字 (等寬防抖: tabular-nums + Cascadia Code/Consolas/monospace) -->
-          <div id="exam-countdown" style="font-family: 'Zen Maru Gothic', 'Cascadia Code', Consolas, Monaco, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; font-size: 3.8rem; font-weight: 800; color: #38bdf8; letter-spacing: 2px; text-shadow: 0 0 16px rgba(56, 189, 248, 0.4); min-width: 240px; display: inline-block; transition: font-size 0.2s;">
-            00:00
+          <!-- 物理獨立槽位倒數計時（徹底消滅抖動：每個數字獨立固定寬度 inline-block 格子） -->
+          <div id="exam-countdown-box" style="font-family: 'Roboto Mono', 'Courier New', Courier, Consolas, Monaco, monospace; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; font-size: 3.8rem; font-weight: 900; color: #38bdf8; text-shadow: 0 0 16px rgba(56, 189, 248, 0.4); display: flex; justify-content: center; align-items: center; line-height: 1; transition: font-size 0.2s;">
+            <span id="exam-d-m1" style="display: inline-block; width: 0.65em; text-align: center;">0</span>
+            <span id="exam-d-m2" style="display: inline-block; width: 0.65em; text-align: center;">0</span>
+            <span style="display: inline-block; width: 0.35em; text-align: center; position: relative; top: -0.04em;">:</span>
+            <span id="exam-d-s1" style="display: inline-block; width: 0.65em; text-align: center;">0</span>
+            <span id="exam-d-s2" style="display: inline-block; width: 0.65em; text-align: center;">0</span>
           </div>
           
-          <div style="position: absolute; bottom: 6px; right: 12px; font-size: 0.75rem; color: #64748b; font-family: monospace; font-variant-numeric: tabular-nums;">
+          <div style="position: absolute; bottom: 6px; right: 12px; font-size: 0.75rem; color: #64748b; font-family: 'Roboto Mono', Consolas, monospace; font-variant-numeric: tabular-nums;">
             目前時刻 <span id="exam-current-time" style="color: #94a3b8; font-weight: bold;">--:--:--</span>
           </div>
         </div>
@@ -3385,7 +3389,11 @@ const ClassroomWidgets = {
       onInit: (winEl, winObj) => {
         const body = winEl.querySelector('.window-body') || winEl;
         const subjectDisplay = body.querySelector('#exam-subject-display');
-        const countdownDisplay = body.querySelector('#exam-countdown');
+        const countdownBox = body.querySelector('#exam-countdown-box');
+        const dM1 = body.querySelector('#exam-d-m1');
+        const dM2 = body.querySelector('#exam-d-m2');
+        const dS1 = body.querySelector('#exam-d-s1');
+        const dS2 = body.querySelector('#exam-d-s2');
         const statusBadge = body.querySelector('#exam-status-badge');
         const periodInfo = body.querySelector('#exam-period-info');
         const currentTimeDisplay = body.querySelector('#exam-current-time');
@@ -3402,10 +3410,20 @@ const ClassroomWidgets = {
         const zoomOutBtn = body.querySelector('#exam-zoom-out');
         const zoomResetBtn = body.querySelector('#exam-zoom-reset');
 
+        function setCountdownDigits(mmStr, ssStr, color) {
+          if (countdownBox && color) {
+            countdownBox.style.color = color;
+          }
+          if (dM1) dM1.textContent = mmStr[0] || '0';
+          if (dM2) dM2.textContent = mmStr[1] || '0';
+          if (dS1) dS1.textContent = ssStr[0] || '0';
+          if (dS2) dS2.textContent = ssStr[1] || '0';
+        }
+
         function applyZoom(scale) {
           examScale = Math.min(1.8, Math.max(0.7, scale));
           if (subjectDisplay) subjectDisplay.style.fontSize = `${(2.8 * examScale).toFixed(2)}rem`;
-          if (countdownDisplay) countdownDisplay.style.fontSize = `${(3.8 * examScale).toFixed(2)}rem`;
+          if (countdownBox) countdownBox.style.fontSize = `${(3.8 * examScale).toFixed(2)}rem`;
           if (zoomResetBtn) zoomResetBtn.textContent = `${Math.round(examScale * 100)}%`;
         }
 
@@ -3426,7 +3444,7 @@ const ClassroomWidgets = {
                 <span style="font-weight: 600; color: #64748b; font-size: 0.85rem;">${item.period}</span>
                 <span style="font-weight: 800; color: #1e293b; font-size: 1.15rem;">${item.subject}</span>
               </div>
-              <div style="font-family: monospace; font-variant-numeric: tabular-nums; color: #475569; font-size: 0.9rem;">
+              <div style="font-family: 'Roboto Mono', Consolas, monospace; font-variant-numeric: tabular-nums; color: #475569; font-size: 0.9rem;">
                 ${item.start} ~ ${item.end}
               </div>
             `;
@@ -3484,10 +3502,9 @@ const ClassroomWidgets = {
               }
               if (subjectDisplay) subjectDisplay.textContent = currentExam.subject;
               if (periodInfo) periodInfo.textContent = `${currentExam.period} (${currentExam.start} ~ ${currentExam.end})`;
-              if (countdownDisplay) {
-                countdownDisplay.textContent = `${mm}:${ss}`;
-                countdownDisplay.style.color = remainSec <= 300 ? '#f87171' : '#38bdf8';
-              }
+              
+              const timerColor = remainSec <= 300 ? '#f87171' : '#38bdf8';
+              setCountdownDigits(mm, ss, timerColor);
 
               if (rows[currentExam.index]) {
                 rows[currentExam.index].style.background = '#fee2e2';
@@ -3504,10 +3521,8 @@ const ClassroomWidgets = {
               }
               if (subjectDisplay) subjectDisplay.textContent = `即將考：${nextExam.subject}`;
               if (periodInfo) periodInfo.textContent = `${nextExam.period} (${nextExam.start} ~ ${nextExam.end})`;
-              if (countdownDisplay) {
-                countdownDisplay.textContent = `${mm}:${ss}`;
-                countdownDisplay.style.color = '#fbbf24';
-              }
+              
+              setCountdownDigits(mm, ss, '#fbbf24');
 
               if (rows[nextExam.index]) {
                 rows[nextExam.index].style.background = '#fef3c7';
@@ -3519,10 +3534,8 @@ const ClassroomWidgets = {
               }
               if (subjectDisplay) subjectDisplay.textContent = '今日日程完畢';
               if (periodInfo) periodInfo.textContent = '辛苦了！請好好休息';
-              if (countdownDisplay) {
-                countdownDisplay.textContent = '00:00';
-                countdownDisplay.style.color = '#94a3b8';
-              }
+              
+              setCountdownDigits('00', '00', '#94a3b8');
             }
           }
         }
