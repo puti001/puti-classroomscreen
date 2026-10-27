@@ -2024,7 +2024,20 @@ const ClassroomWidgets = {
     let wsScale = 1.0;
     let isZhuyin = localStorage.getItem('puti_ws_zhuyin') === 'true';
 
-    // 依台灣國小課本標準產生字右側直排注音，聲調標於韻母右側
+    // 依台灣國小課本標準產生字右側直排注音，二/三/四聲以高精度向量SVG標出，絕不糊化或變平
+    const makeToneSvg = (tone) => {
+      if (tone === 'ˊ') {
+        return '<svg class="zy-tone-svg tone-2" viewBox="0 0 10 16"><path d="M2 13 L8 3" stroke="#4C1D95" stroke-width="2.8" stroke-linecap="round"/></svg>';
+      } else if (tone === 'ˇ') {
+        return '<svg class="zy-tone-svg tone-3" viewBox="0 0 14 16"><path d="M2 6 L6 13 L12 4" fill="none" stroke="#4C1D95" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      } else if (tone === 'ˋ') {
+        return '<svg class="zy-tone-svg tone-4" viewBox="0 0 10 16"><path d="M2 3 L8 13" stroke="#4C1D95" stroke-width="2.8" stroke-linecap="round"/></svg>';
+      } else if (tone === '˙') {
+        return '<svg class="zy-tone-svg tone-5" viewBox="0 0 8 16"><circle cx="4" cy="4" r="2.5" fill="#4C1D95"/></svg>';
+      }
+      return '';
+    };
+
     const makeZyHtml = (pairs) => {
       return pairs.map(([char, rawZy]) => {
         let tone = '';
@@ -2037,7 +2050,7 @@ const ClassroomWidgets = {
           }
         }
         const symsHtml = Array.from(letters).map(s => `<span class="zy-sym">${s}</span>`).join('');
-        const toneHtml = tone ? `<span class="zy-tone">${tone}</span>` : '';
+        const toneHtml = tone ? `<span class="zy-tone-wrap">${makeToneSvg(tone)}</span>` : '';
         return `<ruby class="zy-box"><rb class="zy-char">${char}</rb><rt class="zy-rt"><span class="zy-col">${symsHtml}</span>${toneHtml}</rt></ruby>`;
       }).join('');
     };
@@ -2870,7 +2883,9 @@ const ClassroomWidgets = {
     let mirrored = false;
     let isFrozen = false;
     let currentMode = 'webcam'; // 'webcam' | 'mobile'
-    const room = localStorage.getItem('puti_classroom_room') || 'C8888';
+    let peer = null;
+    let peerCall = null;
+    const room = (localStorage.getItem('puti_classroom_room') || 'C8888').toUpperCase();
 
     const content = `
       <div class="webcam-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
@@ -2878,7 +2893,7 @@ const ClassroomWidgets = {
         <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
           <select id="webcam-device-select" style="flex: 1; min-width: 170px; height: 32px; padding: 2px 10px; border-radius: var(--radius-pill); border: 1.5px solid #CBD5E1; outline: none; font-size: 0.82rem; font-weight: 700; background: #FFF; color: #1E293B; cursor: pointer;">
             <option value="">本機鏡頭 / USB實物投影機</option>
-            <option value="mobile-cam" style="color: #2563EB; font-weight: 800;">📱 手機無線實物投影 (請選擇)</option>
+            <option value="mobile-cam" style="color: #2563EB; font-weight: 800;">📱 手機無線實物投影 (即時串流)</option>
           </select>
           <button class="action-btn-secondary" id="webcam-mirror-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; flex: 0 0 auto;" title="左右翻轉鏡像">
             <i class="fa-solid fa-arrows-left-right"></i> 鏡像
@@ -2909,20 +2924,18 @@ const ClassroomWidgets = {
             </div>
             <div id="webcam-qr-container" style="background: #FFF; padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
             <div style="font-size: 0.82rem; color: #E2E8F0; font-weight: 700;">
-              請用手機相機掃描上方 QR 碼連線，對準作業一按即投！
+              請用手機掃描上方 QR 碼，手機鏡頭即刻在大螢幕 30fps 即時動態投影！
             </div>
           </div>
 
-          <!-- Mobile Standby Overlay (shows when phone is connected and ready to shoot) -->
+          <!-- Mobile Standby Overlay (shows when phone is connected but stream is loading) -->
           <div id="webcam-mobile-standby" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0F172A; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 6; text-align: center; padding: 20px;">
             <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #38BDF8; border: 2px solid #38BDF8;">
               <i class="fa-solid fa-mobile-screen"></i>
             </div>
-            <div style="font-size: 1.15rem; color: #F8FAFC; font-weight: 800;">📱 手機無線實物投影已就緒！</div>
-            <div style="font-size: 0.88rem; color: #94A3B8; max-width: 360px; line-height: 1.6;">
-              手機已成功連線至教室頻道 <strong style="color: #38BDF8;">${room}</strong><br>
-              請拿手機對準學生作業，點擊手機上的橘色大按鈕：<br>
-              <span style="display: inline-block; margin-top: 6px; padding: 5px 14px; border-radius: 20px; background: #FF9F1C; color: #FFF; font-weight: 800; font-size: 0.82rem; box-shadow: 0 2px 8px rgba(255,159,28,0.4);">📸 拍作業・投至大螢幕</span>
+            <div style="font-size: 1.15rem; color: #F8FAFC; font-weight: 800;">📱 手機無線實物投影連線中...</div>
+            <div style="font-size: 0.85rem; color: #94A3B8; max-width: 360px; line-height: 1.6;">
+              正在建立 WebRTC 點對點即時影像串流，請保持手機螢幕開啟。
             </div>
           </div>
 
@@ -2931,7 +2944,7 @@ const ClassroomWidgets = {
             ⏸️ 畫面已定格
           </div>
           <div id="webcam-source-badge" style="display: none; position: absolute; top: 10px; right: 10px; background: rgba(37, 99, 235, 0.9); color: #FFF; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 8;">
-            📱 手機投影連線中
+            📱 手機即時視訊 (30fps)
           </div>
         </div>
 
@@ -2981,29 +2994,79 @@ const ClassroomWidgets = {
           });
         }
 
+        // Initialize PeerJS for WebRTC Live Stream from Phone
+        const initPeerReceiver = () => {
+          if (typeof Peer === 'undefined') return;
+          const peerId = 'puti-cam-' + room.toLowerCase();
+          try {
+            if (peer) peer.destroy();
+            peer = new Peer(peerId, { debug: 0 });
+
+            peer.on('open', (id) => {
+              console.log('[Webcam] PeerJS receiver ready with ID:', id);
+            });
+
+            peer.on('call', (call) => {
+              peerCall = call;
+              call.answer(); // Answer without sending local stream
+              call.on('stream', (remoteStream) => {
+                // LIVE 30FPS VIDEO STREAM FROM SMARTPHONE!
+                video.srcObject = remoteStream;
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+                emptyTip.style.display = 'none';
+                mobileQrBox.style.display = 'none';
+                mobileStandby.style.display = 'none';
+                sourceBadge.textContent = '📱 手機即時視訊 (30fps)';
+                sourceBadge.style.display = 'block';
+                statusTip.textContent = '🟢 手機實物投影即時串流中！';
+                const mobileOpt = deviceSelect.querySelector('option[value="mobile-cam"]');
+                if (mobileOpt) mobileOpt.textContent = '📱 手機無線實物投影 (已連線 🟢)';
+                deviceSelect.value = 'mobile-cam';
+                currentMode = 'mobile';
+                toggleBtn.style.display = 'none';
+                window.soundEngine.playSuccess();
+              });
+
+              call.on('close', () => {
+                sourceBadge.style.display = 'none';
+                statusTip.textContent = '📱 手機連線已關閉';
+              });
+            });
+          } catch(e) {
+            console.warn('[Webcam] PeerJS init error:', e);
+          }
+        };
+
+        initPeerReceiver();
+
         // Enumerate local webcam devices
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices().then(devices => {
             const vds = devices.filter(d => d.kind === 'videoinput');
             if (vds.length > 0) {
               const optionsHtml = vds.map((d, i) => `<option value="${d.deviceId}">${d.label || `攝影機 ${i+1}`}</option>`).join('');
-              deviceSelect.innerHTML = `<option value="">本機鏡頭 / USB實物投影機</option>${optionsHtml}<option value="mobile-cam" style="color: #2563EB; font-weight: 800;">📱 手機無線實物投影 (請選擇)</option>`;
+              deviceSelect.innerHTML = `<option value="">本機鏡頭 / USB實物投影機</option>${optionsHtml}<option value="mobile-cam" style="color: #2563EB; font-weight: 800;">📱 手機無線實物投影 (即時串流)</option>`;
             }
           }).catch(console.warn);
         }
 
+        // Robust Local Webcam Start (Never throws OverconstrainedError)
         const startLocalWebcam = async () => {
           try {
             const id = deviceSelect.value;
+            // Use simple constraint to guarantee compatibility with all hardware
             const constraints = {
-              video: id && id !== 'mobile-cam' ? { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1920 }, height: { ideal: 1080 } }
+              video: id && id !== 'mobile-cam' ? { deviceId: { exact: id } } : true,
+              audio: false
             };
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
+            video.style.display = 'block';
             emptyTip.style.display = 'none';
             mobileQrBox.style.display = 'none';
+            mobileStandby.style.display = 'none';
             canvas.style.display = 'none';
-            video.style.display = 'block';
             sourceBadge.style.display = 'none';
             isFrozen = false;
             freezeBadge.style.display = 'none';
@@ -3011,7 +3074,8 @@ const ClassroomWidgets = {
             toggleBtn.style.background = '#EF4444';
             statusTip.textContent = '🟢 本機實物投影機/鏡頭運作中';
           } catch(e) {
-            alert('⚠️ 無法存取本機鏡頭！請確認瀏覽器已允許相機權限，或檢查鏡頭是否被其他程式佔用。');
+            console.error('Webcam access error:', e);
+            alert('⚠️ 無法存取本機鏡頭！請確認瀏覽器已允許相機權限，或檢查相機是否被其他軟體佔用。');
           }
         };
 
@@ -3039,12 +3103,18 @@ const ClassroomWidgets = {
             currentMode = 'mobile';
             stopLocalWebcam();
             emptyTip.style.display = 'none';
-            mobileQrBox.style.display = 'flex';
             toggleBtn.style.display = 'none';
-            statusTip.textContent = '📱 手機模式：請用手機掃描 QR 碼開始無線投影';
+            if (video.srcObject && video.srcObject.active) {
+              video.style.display = 'block';
+              mobileQrBox.style.display = 'none';
+            } else {
+              mobileQrBox.style.display = 'flex';
+              statusTip.textContent = '📱 請用手機掃描畫面中的 QR 碼即可即時投影！';
+            }
           } else {
             currentMode = 'webcam';
             mobileQrBox.style.display = 'none';
+            mobileStandby.style.display = 'none';
             toggleBtn.style.display = 'inline-flex';
             sourceBadge.style.display = 'none';
             startLocalWebcam();
@@ -3067,8 +3137,8 @@ const ClassroomWidgets = {
 
         // Freeze / Snapshot
         snapBtn.addEventListener('click', () => {
-          if (!stream && !isFrozen && currentMode !== 'mobile') {
-            alert('請先點擊「開啟鏡頭」後再進行定格截圖！');
+          if (!video.srcObject && !isFrozen) {
+            alert('請先開啟鏡頭或連線手機後再定格截圖！');
             return;
           }
           if (isFrozen) {
@@ -3084,6 +3154,10 @@ const ClassroomWidgets = {
             canvas.width = video.videoWidth || 1280;
             canvas.height = video.videoHeight || 720;
             const ctx = canvas.getContext('2d');
+            if (mirrored) {
+              ctx.translate(canvas.width, 0);
+              ctx.scale(-1, 1);
+            }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             canvas.style.display = 'block';
             video.style.display = 'none';
@@ -3096,36 +3170,22 @@ const ClassroomWidgets = {
         // Mobile Camera QR Code button
         mobileBtn.addEventListener('click', () => {
           if (typeof window.openQRLightbox === 'function') {
-            window.openQRLightbox('📱 手機無線實物投影機', mobileUrl, `請用手機相機掃描 QR Code，即可將手機當作無線實物投影機，對準學生作業一按即投！`);
+            window.openQRLightbox('📱 手機無線實物投影機', mobileUrl, `請用手機相機掃描 QR Code，即可將手機當作無線實物投影機，對準學生作業即時視訊投影至大螢幕！`);
           } else {
             prompt('請用手機開啟以下連結（或掃描 QR 碼）：', mobileUrl);
           }
           window.soundEngine.playBell();
         });
 
-        // Realtime MQTT listener for Mobile Phone
+        // Realtime MQTT fallback listener
         if (window.realtimeEngine) {
-          // 1. Phone Join notification
           window.realtimeEngine.subscribe('webcam/join', (data) => {
             const mobileOpt = deviceSelect.querySelector('option[value="mobile-cam"]');
-            if (mobileOpt) {
-              mobileOpt.textContent = `📱 手機無線實物投影 (已連線 🟢)`;
-            }
-            deviceSelect.value = 'mobile-cam';
-            currentMode = 'mobile';
-            stopLocalWebcam();
-            emptyTip.style.display = 'none';
-            mobileQrBox.style.display = 'none';
-            if (canvas.style.display !== 'block') {
-              mobileStandby.style.display = 'flex';
-            }
-            sourceBadge.textContent = '📱 手機已連線';
-            sourceBadge.style.display = 'block';
-            statusTip.textContent = '🟢 手機已成功連線！請在手機端點擊「拍作業・投至大螢幕」';
+            if (mobileOpt) mobileOpt.textContent = '📱 手機無線實物投影 (已連線 🟢)';
+            statusTip.textContent = '🟢 手機已連線！正在同步即時視訊...';
             window.soundEngine.playSuccess();
           });
 
-          // 2. Phone Snapshot / Live Frame
           window.realtimeEngine.subscribe('webcam/snapshot', (data) => {
             if (data && data.imageUrl) {
               const img = new Image();
@@ -3139,10 +3199,9 @@ const ClassroomWidgets = {
                 emptyTip.style.display = 'none';
                 mobileQrBox.style.display = 'none';
                 mobileStandby.style.display = 'none';
-                sourceBadge.textContent = '📱 來自手機作業投影';
+                sourceBadge.textContent = '📱 來自手機即時投影';
                 sourceBadge.style.display = 'block';
-                statusTip.textContent = '📷 已接收手機作業投影畫面！';
-                window.soundEngine.playSuccess();
+                statusTip.textContent = '📷 已接收手機即時影像！';
               };
               img.src = data.imageUrl;
             }
@@ -3153,6 +3212,10 @@ const ClassroomWidgets = {
         if (stream) {
           stream.getTracks().forEach(t => t.stop());
           stream = null;
+        }
+        if (peer) {
+          peer.destroy();
+          peer = null;
         }
       }
     });

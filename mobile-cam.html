@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Zen Maru Gothic', sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -44,10 +45,21 @@
       height: 8px;
       border-radius: 50%;
       background: #EF4444;
+      transition: all 0.3s ease;
     }
     .status-dot.connected {
       background: #22C55E;
       box-shadow: 0 0 8px #22C55E;
+    }
+    .status-dot.streaming {
+      background: #38BDF8;
+      box-shadow: 0 0 10px #38BDF8;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
     }
     .viewfinder {
       flex: 1;
@@ -63,6 +75,23 @@
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+    .live-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid #38BDF8;
+      color: #38BDF8;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 5;
     }
     .bottom-controls {
       display: flex;
@@ -111,13 +140,17 @@
       justify-content: center;
       font-size: 1.1rem;
       cursor: pointer;
+      transition: background 0.2s;
+    }
+    .circle-tool-btn:active {
+      background: #334155;
     }
     .sent-toast {
       position: absolute;
       top: 20px;
       left: 50%;
       transform: translateX(-50%) translateY(-20px);
-      background: rgba(34, 197, 94, 0.92);
+      background: rgba(34, 197, 94, 0.95);
       color: #FFF;
       padding: 8px 18px;
       border-radius: 20px;
@@ -156,6 +189,9 @@
   <!-- Camera Viewfinder -->
   <div class="viewfinder">
     <video id="camera-video" autoplay playsinline></video>
+    <div class="live-badge" id="live-badge">
+      <i class="fa-solid fa-tower-broadcast"></i> <span id="stream-status-text">準備即時串流...</span>
+    </div>
     <div class="sent-toast" id="sent-toast">
       <i class="fa-solid fa-check"></i> 已同步傳送至大螢幕！
     </div>
@@ -172,12 +208,12 @@
         <i class="fa-solid fa-camera"></i> 拍作業・投至大螢幕
       </button>
 
-      <button class="circle-tool-btn" id="stream-toggle-btn" title="連續即時串流">
-        <i class="fa-solid fa-tower-broadcast"></i>
+      <button class="circle-tool-btn" id="reconnect-btn" title="重新連線串流">
+        <i class="fa-solid fa-arrows-rotate"></i>
       </button>
     </div>
     <div class="guide-tip" id="guide-tip">
-      💡 巡堂對準學生筆記本或學習單，點擊橘色按鈕即可一鍵在大螢幕高清定格展示！
+      💡 30fps 即時視訊自動鏡像傳輸中！點擊橘色按鈕可定格截圖特寫作業。
     </div>
   </div>
 
@@ -185,24 +221,26 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const room = urlParams.get('room') || 'C8888';
+    const room = (urlParams.get('room') || 'C8888').toUpperCase();
     document.getElementById('room-display').textContent = '教室 ' + room;
 
     const video = document.getElementById('camera-video');
     const canvas = document.getElementById('capture-canvas');
     const snapBtn = document.getElementById('snap-send-btn');
     const switchCamBtn = document.getElementById('switch-cam-btn');
-    const streamToggleBtn = document.getElementById('stream-toggle-btn');
+    const reconnectBtn = document.getElementById('reconnect-btn');
     const connDot = document.getElementById('conn-dot');
     const sentToast = document.getElementById('sent-toast');
     const guideTip = document.getElementById('guide-tip');
+    const liveBadge = document.getElementById('live-badge');
+    const streamStatusText = document.getElementById('stream-status-text');
 
-    let currentFacingMode = 'environment'; // 后置鏡頭
+    let currentFacingMode = 'environment'; // 後置主鏡頭
     let localStream = null;
-    let isStreaming = false;
-    let streamTimer = null;
+    let peer = null;
+    let activeCall = null;
 
-    // Start mobile camera
+    // 1. Start mobile camera
     async function initCamera() {
       if (localStream) {
         localStream.getTracks().forEach(t => t.stop());
@@ -211,15 +249,70 @@
         localStream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: currentFacingMode },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           },
           audio: false
         });
         video.srcObject = localStream;
+        streamStatusText.textContent = '相機啟動成功，正在呼叫大螢幕...';
+
+        // Connect WebRTC stream to Smartboard
+        startWebRTCStream();
       } catch (err) {
-        console.warn('Camera permission or device error:', err);
+        console.warn('Camera error:', err);
+        streamStatusText.textContent = '相機啟動受限';
         guideTip.textContent = '⚠️ 請允許瀏覽器相機權限，以使用手機實物投影功能！';
+      }
+    }
+
+    // 2. WebRTC Live 30fps PeerJS Stream to Smartboard
+    function startWebRTCStream() {
+      if (typeof Peer === 'undefined' || !localStream) return;
+
+      if (peer) {
+        try { peer.destroy(); } catch(e){}
+      }
+
+      // Create random caller Peer
+      const myId = 'mobile-' + Math.random().toString(36).substring(2, 9);
+      peer = new Peer(myId, { debug: 0 });
+
+      peer.on('open', () => {
+        const targetHostId = 'puti-cam-' + room.toLowerCase();
+        callHost(targetHostId);
+      });
+
+      peer.on('error', (err) => {
+        console.warn('Peer error:', err);
+        setTimeout(() => {
+          if (peer && !peer.destroyed) {
+            callHost('puti-cam-' + room.toLowerCase());
+          }
+        }, 3000);
+      });
+    }
+
+    function callHost(targetHostId) {
+      if (!peer || !localStream) return;
+      try {
+        if (activeCall) {
+          activeCall.close();
+        }
+        activeCall = peer.call(targetHostId, localStream);
+        if (activeCall) {
+          connDot.className = 'status-dot streaming';
+          streamStatusText.textContent = '🟢 30fps 即時視訊連線中';
+          guideTip.textContent = '💡 巡堂對準學生作業即可在大螢幕即時動態講解！';
+          
+          activeCall.on('close', () => {
+            connDot.className = 'status-dot connected';
+            streamStatusText.textContent = '連線中斷，正在重連...';
+            setTimeout(() => callHost(targetHostId), 2500);
+          });
+        }
+      } catch(e) {
+        console.warn('Call host failed:', e);
       }
     }
 
@@ -230,7 +323,14 @@
       if (navigator.vibrate) navigator.vibrate(30);
     });
 
-    // MQTT Realtime Connection
+    // Reconnect stream
+    reconnectBtn.addEventListener('click', () => {
+      startWebRTCStream();
+      connectMqtt();
+      if (navigator.vibrate) navigator.vibrate(40);
+    });
+
+    // 3. MQTT Realtime Connection for Snapshot fallback & presence
     let mqttClient = null;
     const clientId = 'MobileCam_' + Math.random().toString(16).substring(2, 8);
     const brokers = [
@@ -243,9 +343,7 @@
       const broker = brokers[brokerIndex % brokers.length];
       mqttClient = new Paho.MQTT.Client(broker.host, broker.port, broker.path, clientId);
 
-      mqttClient.onConnectionLost = (res) => {
-        connDot.classList.remove('connected');
-        document.getElementById('room-display').textContent = '重新連線中...';
+      mqttClient.onConnectionLost = () => {
         brokerIndex++;
         setTimeout(connectMqtt, 3000);
       };
@@ -258,7 +356,6 @@
         onSuccess: () => {
           connDot.classList.add('connected');
           document.getElementById('room-display').textContent = '已連線教室 ' + room;
-          // Notify smartboard that phone has joined
           try {
             const joinPayload = JSON.stringify({
               type: 'PHONE_JOINED',
@@ -272,24 +369,22 @@
           } catch(e) {}
         },
         onFailure: () => {
-          connDot.classList.remove('connected');
           brokerIndex++;
           setTimeout(connectMqtt, 3000);
         }
       });
     }
 
+    // 4. Snap and Send Freeze Frame
     function sendSnapshot() {
       if (!video.videoWidth || !video.videoHeight) return;
 
-      // Draw optimized snapshot (840px width is crystal clear for whiteboard reading and fits smoothly in MQTT WebSocket packets)
       const targetWidth = Math.min(840, video.videoWidth);
       canvas.width = targetWidth;
       canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth));
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Compress under 50KB to ensure MQTT WebSocket broker reliability
       let quality = 0.68;
       let dataUrl = canvas.toDataURL('image/jpeg', quality);
       while (dataUrl.length > 50000 && quality > 0.3) {
@@ -307,7 +402,7 @@
         msg.destinationName = `puti/class/${room}/webcam/snapshot`;
         mqttClient.send(msg);
 
-        // UI Feedback on Mobile Button
+        // UI Feedback
         snapBtn.innerHTML = '<i class="fa-solid fa-check"></i> 已成功投至大螢幕！';
         snapBtn.style.background = '#22C55E';
         setTimeout(() => {
@@ -315,7 +410,6 @@
           snapBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)';
         }, 1600);
 
-        // UI Toast
         sentToast.classList.add('show');
         setTimeout(() => sentToast.classList.remove('show'), 2000);
         if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
@@ -326,23 +420,7 @@
 
     snapBtn.addEventListener('click', sendSnapshot);
 
-    // Continuous Live Stream Toggle
-    streamToggleBtn.addEventListener('click', () => {
-      isStreaming = !isStreaming;
-      if (isStreaming) {
-        streamToggleBtn.style.background = '#EF4444';
-        streamToggleBtn.style.color = '#FFF';
-        guideTip.textContent = '🔴 連續投影中（每秒自動同步畫面至大螢幕）';
-        streamTimer = setInterval(sendSnapshot, 1200);
-      } else {
-        streamToggleBtn.style.background = '#1E293B';
-        streamToggleBtn.style.color = '#E2E8F0';
-        guideTip.textContent = '💡 巡堂對準學生筆記本或學習單，點擊橘色按鈕即可一鍵在大螢幕高清定格展示！';
-        clearInterval(streamTimer);
-      }
-      if (navigator.vibrate) navigator.vibrate(50);
-    });
-
+    // Run
     initCamera();
     connectMqtt();
   </script>

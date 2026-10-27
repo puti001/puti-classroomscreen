@@ -573,23 +573,26 @@ body {
   align-items: center;
   justify-content: center;
   line-height: 0.88;
-  font-size: 0.68em;
+  font-size: 0.72em;
   font-weight: 900;
   color: #4C1D95;
+  font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
 }
 .symbol-card .zy-sym {
   display: block;
   line-height: 1;
 }
-.symbol-card .zy-tone {
-  display: inline-block;
-  font-size: 0.68em;
-  font-weight: 900;
-  color: #4C1D95;
-  line-height: 1;
+.symbol-card .zy-tone-wrap {
+  display: inline-flex;
+  align-items: flex-end;
   margin-left: 1px;
-  align-self: flex-end;
   margin-bottom: 2px;
+  line-height: 1;
+}
+.symbol-card .zy-tone-svg {
+  display: block;
+  height: 0.72em;
+  width: auto;
 }
 .work-symbols-container .symbol-name {
   line-height: 1.35;
