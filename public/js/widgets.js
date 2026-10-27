@@ -2101,7 +2101,7 @@ const ClassroomWidgets = {
       </div>
     `;
     wm.createWindow({
-      title: '課堂工作符號', icon: 'fa-icons', iconColor: '#9A8CFF', width: 350, height: 350, minWidth: 300, minHeight: 310, type: 'work-symbols', contentHtml: content,
+      title: '課堂工作符號', icon: 'fa-icons', iconColor: '#9A8CFF', width: 390, height: 380, minWidth: 330, minHeight: 330, type: 'work-symbols', contentHtml: content,
       onInit: (el) => {
         const grid = el.querySelector('#ws-symbol-grid');
         const zhuyinBtn = el.querySelector('#ws-zhuyin-btn');
@@ -2126,13 +2126,16 @@ const ClassroomWidgets = {
           isZhuyin = !isZhuyin;
           localStorage.setItem('puti_ws_zhuyin', isZhuyin);
           renderSymbols();
+          applyScale();
           window.soundEngine.playPop();
         });
 
         const applyScale = () => {
+          const nameBase = isZhuyin ? 1.15 : 0.95;
+          const descBase = isZhuyin ? 0.92 : 0.76;
           grid.querySelectorAll('.symbol-icon-wrapper').forEach(i => i.style.fontSize = (2.2 * wsScale) + 'rem');
-          grid.querySelectorAll('.symbol-name').forEach(n => n.style.fontSize = (0.95 * wsScale) + 'rem');
-          grid.querySelectorAll('.symbol-desc').forEach(d => d.style.fontSize = (0.75 * wsScale) + 'rem');
+          grid.querySelectorAll('.symbol-name').forEach(n => n.style.fontSize = (nameBase * wsScale) + 'rem');
+          grid.querySelectorAll('.symbol-desc').forEach(d => d.style.fontSize = (descBase * wsScale) + 'rem');
         };
 
         el.querySelector('#ws-font-plus').addEventListener('click', () => {
@@ -2902,11 +2905,24 @@ const ClassroomWidgets = {
           <!-- Mobile QR Code Overlay (shows when mobile mode is selected and waiting for phone) -->
           <div id="webcam-mobile-qr-box" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 5; padding: 14px; text-align: center;">
             <div style="font-weight: 800; font-size: 0.95rem; color: #38BDF8; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-mobile-screen"></i> 手機無線實物投影機（教室頻道: ${room}）
+              <i class="fa-solid fa-mobile-screen"></i> 手機無線實物投影機（頻道: ${room}）
             </div>
             <div id="webcam-qr-container" style="background: #FFF; padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
-            <div style="font-size: 0.8rem; color: #E2E8F0; font-weight: 600;">
-              請用手機相機掃描 QR Code，即可將手機當作無線實物投影機，對準學生作業一按即投！
+            <div style="font-size: 0.82rem; color: #E2E8F0; font-weight: 700;">
+              請用手機相機掃描上方 QR 碼連線，對準作業一按即投！
+            </div>
+          </div>
+
+          <!-- Mobile Standby Overlay (shows when phone is connected and ready to shoot) -->
+          <div id="webcam-mobile-standby" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0F172A; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 6; text-align: center; padding: 20px;">
+            <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #38BDF8; border: 2px solid #38BDF8;">
+              <i class="fa-solid fa-mobile-screen"></i>
+            </div>
+            <div style="font-size: 1.15rem; color: #F8FAFC; font-weight: 800;">📱 手機無線實物投影已就緒！</div>
+            <div style="font-size: 0.88rem; color: #94A3B8; max-width: 360px; line-height: 1.6;">
+              手機已成功連線至教室頻道 <strong style="color: #38BDF8;">${room}</strong><br>
+              請拿手機對準學生作業，點擊手機上的橘色大按鈕：<br>
+              <span style="display: inline-block; margin-top: 6px; padding: 5px 14px; border-radius: 20px; background: #FF9F1C; color: #FFF; font-weight: 800; font-size: 0.82rem; box-shadow: 0 2px 8px rgba(255,159,28,0.4);">📸 拍作業・投至大螢幕</span>
             </div>
           </div>
 
@@ -2945,6 +2961,7 @@ const ClassroomWidgets = {
         const mobileBtn = el.querySelector('#webcam-mobile-btn');
         const deviceSelect = el.querySelector('#webcam-device-select');
         const mobileQrBox = el.querySelector('#webcam-mobile-qr-box');
+        const mobileStandby = el.querySelector('#webcam-mobile-standby');
         const qrContainer = el.querySelector('#webcam-qr-container');
         const statusTip = el.querySelector('#webcam-status-tip');
 
@@ -3099,7 +3116,10 @@ const ClassroomWidgets = {
             stopLocalWebcam();
             emptyTip.style.display = 'none';
             mobileQrBox.style.display = 'none';
-            sourceBadge.textContent = '📱 手機無線鏡頭已連線';
+            if (canvas.style.display !== 'block') {
+              mobileStandby.style.display = 'flex';
+            }
+            sourceBadge.textContent = '📱 手機已連線';
             sourceBadge.style.display = 'block';
             statusTip.textContent = '🟢 手機已成功連線！請在手機端點擊「拍作業・投至大螢幕」';
             window.soundEngine.playSuccess();
@@ -3118,12 +3138,11 @@ const ClassroomWidgets = {
                 video.style.display = 'none';
                 emptyTip.style.display = 'none';
                 mobileQrBox.style.display = 'none';
+                mobileStandby.style.display = 'none';
                 sourceBadge.textContent = '📱 來自手機作業投影';
                 sourceBadge.style.display = 'block';
                 statusTip.textContent = '📷 已接收手機作業投影畫面！';
-                if (!isFrozen) {
-                  window.soundEngine.playSuccess();
-                }
+                window.soundEngine.playSuccess();
               };
               img.src = data.imageUrl;
             }

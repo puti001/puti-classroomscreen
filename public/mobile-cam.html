@@ -282,13 +282,20 @@
     function sendSnapshot() {
       if (!video.videoWidth || !video.videoHeight) return;
 
-      // Draw high-res snapshot
-      canvas.width = Math.min(1280, video.videoWidth);
+      // Draw optimized snapshot (840px width is crystal clear for whiteboard reading and fits smoothly in MQTT WebSocket packets)
+      const targetWidth = Math.min(840, video.videoWidth);
+      canvas.width = targetWidth;
       canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth));
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      // Compress under 50KB to ensure MQTT WebSocket broker reliability
+      let quality = 0.68;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length > 50000 && quality > 0.3) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
 
       if (mqttClient && mqttClient.isConnected()) {
         const payload = JSON.stringify({
@@ -299,6 +306,14 @@
         const msg = new Paho.MQTT.Message(payload);
         msg.destinationName = `puti/class/${room}/webcam/snapshot`;
         mqttClient.send(msg);
+
+        // UI Feedback on Mobile Button
+        snapBtn.innerHTML = '<i class="fa-solid fa-check"></i> 已成功投至大螢幕！';
+        snapBtn.style.background = '#22C55E';
+        setTimeout(() => {
+          snapBtn.innerHTML = '<i class="fa-solid fa-camera"></i> 拍作業・投至大螢幕';
+          snapBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)';
+        }, 1600);
 
         // UI Toast
         sentToast.classList.add('show');
