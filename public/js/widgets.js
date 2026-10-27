@@ -2024,20 +2024,7 @@ const ClassroomWidgets = {
     let wsScale = 1.0;
     let isZhuyin = localStorage.getItem('puti_ws_zhuyin') === 'true';
 
-    // 依台灣國小課本標準產生字右側直排注音，二/三/四聲以高精度向量SVG標出，絕不糊化或變平
-    const makeToneSvg = (tone) => {
-      if (tone === 'ˊ') {
-        return '<svg class="zy-tone-svg tone-2" viewBox="0 0 10 16"><path d="M2 13 L8 3" stroke="#4C1D95" stroke-width="2.8" stroke-linecap="round"/></svg>';
-      } else if (tone === 'ˇ') {
-        return '<svg class="zy-tone-svg tone-3" viewBox="0 0 14 16"><path d="M2 6 L6 13 L12 4" fill="none" stroke="#4C1D95" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      } else if (tone === 'ˋ') {
-        return '<svg class="zy-tone-svg tone-4" viewBox="0 0 10 16"><path d="M2 3 L8 13" stroke="#4C1D95" stroke-width="2.8" stroke-linecap="round"/></svg>';
-      } else if (tone === '˙') {
-        return '<svg class="zy-tone-svg tone-5" viewBox="0 0 8 16"><circle cx="4" cy="4" r="2.5" fill="#4C1D95"/></svg>';
-      }
-      return '';
-    };
-
+    // 依台灣國小課本標準產生字右側直排注音，採用正統中文字型天然字形，輕聲置頂、二三四聲置於韻母右上
     const makeZyHtml = (pairs) => {
       return pairs.map(([char, rawZy]) => {
         let tone = '';
@@ -2049,9 +2036,11 @@ const ClassroomWidgets = {
             letters += ch;
           }
         }
-        const symsHtml = Array.from(letters).map(s => `<span class="zy-sym">${s}</span>`).join('');
-        const toneHtml = tone ? `<span class="zy-tone-wrap">${makeToneSvg(tone)}</span>` : '';
-        return `<ruby class="zy-box"><rb class="zy-char">${char}</rb><rt class="zy-rt"><span class="zy-col">${symsHtml}</span>${toneHtml}</rt></ruby>`;
+        const lettersHtml = Array.from(letters).map(s => `<span class="zy-letter">${s}</span>`).join('');
+        const topToneHtml = tone === '˙' ? '<span class="zy-top-tone">˙</span>' : '';
+        const toneClass = tone === 'ˊ' ? 'tone-2' : tone === 'ˇ' ? 'tone-3' : tone === 'ˋ' ? 'tone-4' : '';
+        const sideToneHtml = (tone && tone !== '˙') ? `<span class="zy-side-tone ${toneClass}">${tone}</span>` : '';
+        return `<ruby class="zy-box"><rb class="zy-char">${char}</rb><rt class="zy-rt">${topToneHtml}<div class="zy-body"><div class="zy-letters">${lettersHtml}</div>${sideToneHtml}</div></rt></ruby>`;
       }).join('');
     };
 

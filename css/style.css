@@ -548,6 +548,7 @@ body {
 }
 
 
+/* 台灣國小課本標準注音排版 (原生繁體中文字型，絕不變平橫線、絕無怪異生硬感) */
 .symbol-card ruby.zy-box {
   display: inline-flex !important;
   align-items: center;
@@ -561,13 +562,29 @@ body {
 }
 .symbol-card .zy-rt {
   display: inline-flex !important;
-  flex-direction: row;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin-left: 2px;
   user-select: none;
   line-height: 1;
+  font-family: "BiauKai", "DFKai-SB", "標楷體", "Noto Sans TC", "Microsoft JhengHei", "微軟正黑體", sans-serif !important;
 }
-.symbol-card .zy-col {
+.symbol-card .zy-top-tone {
+  display: block;
+  font-size: 0.65em;
+  line-height: 0.5;
+  font-weight: 900;
+  color: #4C1D95;
+  margin-bottom: 2px;
+}
+.symbol-card .zy-body {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: flex-end;
+  line-height: 1;
+}
+.symbol-card .zy-letters {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -576,23 +593,29 @@ body {
   font-size: 0.72em;
   font-weight: 900;
   color: #4C1D95;
-  font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
 }
-.symbol-card .zy-sym {
+.symbol-card .zy-letter {
   display: block;
   line-height: 1;
 }
-.symbol-card .zy-tone-wrap {
-  display: inline-flex;
-  align-items: flex-end;
+.symbol-card .zy-side-tone {
+  display: inline-block;
+  font-size: 0.75em;
+  line-height: 1;
+  font-weight: 900;
+  color: #4C1D95;
   margin-left: 1px;
-  margin-bottom: 2px;
-  line-height: 1;
+  margin-bottom: 1px;
+  transform: translateY(-1px);
 }
-.symbol-card .zy-tone-svg {
-  display: block;
-  height: 0.72em;
-  width: auto;
+.symbol-card .zy-side-tone.tone-2 {
+  transform: translateY(-2px);
+}
+.symbol-card .zy-side-tone.tone-3 {
+  transform: translateY(-2px);
+}
+.symbol-card .zy-side-tone.tone-4 {
+  transform: translateY(-2px);
 }
 .work-symbols-container .symbol-name {
   line-height: 1.35;
