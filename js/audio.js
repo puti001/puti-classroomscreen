@@ -184,22 +184,28 @@ class SoundEngine {
   // 課堂即時互動音效庫 (Clap, Cheer, Correct, Wrong, Fireworks)
   // ==========================================
 
-  // 1. 拍手聲 (熱烈掌聲模擬)
+  // 1. 熱烈鼓掌 (長達 2.2 秒真實全班連綿掌聲)
   playClap() {
     if (this.muted) return;
     this.init();
     if (!this.ctx) return;
 
-    const numClaps = 12;
-    for (let i = 0; i < numClaps; i++) {
-      const delay = Math.random() * 0.45;
+    // 產生密集且長達 2.2 秒的掌聲波列 (約 45 次隨機拍擊疊加)
+    const duration = 2.2;
+    const totalClaps = 48;
+
+    for (let i = 0; i < totalClaps; i++) {
+      // 掌聲時間分佈：漸強、維持高峰、自然漸弱
+      const delay = Math.pow(Math.random(), 1.1) * duration;
       setTimeout(() => {
         if (!this.ctx) return;
-        const bufferSize = this.ctx.sampleRate * 0.04;
+        const now = this.ctx.currentTime;
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
+
         for (let j = 0; j < bufferSize; j++) {
-          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.25));
+          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.2));
         }
 
         const noise = this.ctx.createBufferSource();
@@ -207,51 +213,80 @@ class SoundEngine {
 
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.value = 1000 + Math.random() * 400;
-        filter.Q.value = 2.0;
+        filter.frequency.value = 850 + Math.random() * 700;
+        filter.Q.value = 1.6 + Math.random() * 1.0;
 
         const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.18 + Math.random() * 0.08, this.ctx.currentTime);
+        // 依照時間計算包絡曲線 (淡入 -> 高峰 -> 淡出)
+        const progress = delay / duration;
+        const env = Math.sin(progress * Math.PI);
+        const vol = (0.12 + Math.random() * 0.12) * Math.max(0.2, env);
+
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
 
-        noise.start();
+        noise.start(now);
       }, delay * 1000);
     }
   }
 
-  // 2. 歡呼聲 (群眾興奮升調)
+  // 2. 歡呼尖叫 (長達 2.5 秒全班熱血歡騰 + 勝利和弦 + 掌聲齊鳴)
   playCheer() {
     if (this.muted) return;
     this.init();
     if (!this.ctx) return;
 
-    const chord = [392.00, 523.25, 659.25, 783.99, 1046.50]; // G4, C5, E5, G5, C6
     const now = this.ctx.currentTime;
+    const duration = 2.5;
 
-    chord.forEach((freq, idx) => {
+    // 多層次群體興奮升調人聲模擬 (合唱群管共振)
+    const vocalPitches = [
+      { base: 330, peak: 440 }, // E4 -> A4
+      { base: 392, peak: 523 }, // G4 -> C5
+      { base: 523, peak: 698 }, // C5 -> F5
+      { base: 659, peak: 880 }, // E5 -> A5
+      { base: 784, peak: 1046 } // G5 -> C6
+    ];
+
+    vocalPitches.forEach((pitch, i) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
-      osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
-      osc.frequency.setValueAtTime(freq * 0.95, now);
-      osc.frequency.exponentialRampToValueAtTime(freq * 1.06, now + 0.35);
-      osc.frequency.linearRampToValueAtTime(freq, now + 0.7);
+      osc.type = i % 2 === 0 ? 'triangle' : 'sine';
+      // 升調曲線
+      osc.frequency.setValueAtTime(pitch.base, now);
+      osc.frequency.exponentialRampToValueAtTime(pitch.peak, now + 0.7);
+      osc.frequency.linearRampToValueAtTime(pitch.peak * 0.98, now + duration);
 
+      // 人聲顫音 (Vibrato)
+      const vibrato = this.ctx.createOscillator();
+      const vibratoGain = this.ctx.createGain();
+      vibrato.frequency.value = 5.5 + i * 0.4;
+      vibratoGain.gain.value = 14;
+      vibrato.connect(osc.frequency);
+      vibrato.start(now + 0.3);
+      vibrato.stop(now + duration);
+
+      // 音量波封 (湧入 -> 狂歡盛宴 -> 慢慢落下)
       gain.gain.setValueAtTime(0.01, now);
-      gain.gain.linearRampToValueAtTime(0.16, now + 0.2);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+      gain.gain.linearRampToValueAtTime(0.14, now + 0.5);
+      gain.gain.linearRampToValueAtTime(0.12, now + 1.8);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
+
       osc.start(now);
-      osc.stop(now + 0.85);
+      osc.stop(now + duration);
     });
 
-    // 伴隨輕快拍手
-    setTimeout(() => this.playClap(), 120);
+    // 伴隨長達 2 秒的熱烈歡呼掌聲
+    this.playClap();
+    setTimeout(() => this.playClap(), 400);
   }
 
   // 3. 答對啦！(清脆叮咚兩聲)

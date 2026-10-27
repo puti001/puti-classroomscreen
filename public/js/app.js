@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'ambient': () => ClassroomWidgets.spawnAmbientSound(wm),
     'tally': () => ClassroomWidgets.spawnIndividualTally(wm),
     'timetable': () => ClassroomWidgets.spawnTimetable(wm),
-    'days-countdown': () => ClassroomWidgets.spawnDaysCountdown(wm)
+    'days-countdown': () => ClassroomWidgets.spawnDaysCountdown(wm),
+    'exam-timer': () => ClassroomWidgets.spawnExamTimer(wm)
   };
 
   // =========================================================================
