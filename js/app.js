@@ -51,48 +51,64 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   const wallpapers = [
     {
-      id: 'default-back',
-      name: '溫馨黑板 (預設)',
+      id: 'edtech-default',
+      name: '教育科技 (預設)',
       url: './assets/wallpapers/back.png',
       thumb: './assets/wallpapers/back.png'
     },
     {
-      id: 'warm-gradient',
-      name: '日系暖日粉彩',
-      url: 'linear-gradient(135deg, #FFE8CC 0%, #FFD8A8 50%, #FFC078 100%)',
-      isGradient: true,
-      thumb: 'linear-gradient(135deg, #FFE8CC, #FFC078)'
+      id: 'blackboard',
+      name: '黑板',
+      url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=300&q=60'
     },
     {
-      id: 'classroom-bright',
-      name: '溫馨明亮教室',
-      url: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=300&q=60'
+      id: 'seaside',
+      name: '海邊',
+      url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=60'
     },
     {
-      id: 'cozy-desk',
-      name: '木質簡約書桌',
-      url: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=300&q=60'
+      id: 'sky',
+      name: '天空',
+      url: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=300&q=60'
     },
     {
-      id: 'forest-calm',
-      name: '翠綠森林微風',
-      url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80',
-      thumb: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&q=60'
+      id: 'grassland',
+      name: '草原',
+      url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=60'
     },
     {
-      id: 'starry-night',
-      name: '靜謐浩瀚星空',
+      id: 'flower-sea',
+      name: '花海',
+      url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=300&q=60'
+    },
+    {
+      id: 'cosmos',
+      name: '宇宙',
+      url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=300&q=60'
+    },
+    {
+      id: 'milkyway',
+      name: '銀河',
       url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1920&q=80',
       thumb: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=300&q=60'
     },
     {
-      id: 'morandi-green',
-      name: '莫蘭迪鼠尾草',
-      url: 'linear-gradient(135deg, #D8F3DC 0%, #B7E4C7 50%, #95D5B2 100%)',
-      isGradient: true,
-      thumb: 'linear-gradient(135deg, #D8F3DC, #95D5B2)'
+      id: 'mountain',
+      name: '山岳',
+      url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=300&q=60'
+    },
+    {
+      id: 'ocean-world',
+      name: '海洋世界',
+      url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1920&q=80',
+      thumb: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=300&q=60'
     }
   ];
 
