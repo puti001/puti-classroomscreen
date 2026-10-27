@@ -76,6 +76,14 @@ const ClassroomWidgets = {
     { id: 'tally', category: 'order', name: '個人計分器', icon: 'fa-user-check', color: '#FF7B00', desc: '全班個別學生加扣分、排行榜頒獎、全班一鍵加分' },
     { id: 'timetable', category: 'time', name: '班級功課表', icon: 'fa-calendar-week', color: '#3A86FF', desc: '週一至週五功課表、今日課程自動高亮、科目快捷晶片填寫' },
     { id: 'days-countdown', category: 'time', name: '重要日子倒數', icon: 'fa-calendar-check', color: '#E63946', desc: '倒數段考、校外教學、畢業典禮、寒暑假等重要日子天數' },
+    {
+      id: 'user-guide',
+      name: '使用說明',
+      category: 'utility',
+      icon: 'fa-circle-question',
+      color: '#2563EB',
+      desc: '使用指南、教學工具庫與問題回報信箱'
+    },
     { id: 'exam-timer', category: 'time', name: '考試計時器', icon: 'fa-stopwatch-20', color: '#E03131', desc: '段考日多科目時程自動推進、當前節次大字倒數與鐘響' }
   ],
 
@@ -3290,6 +3298,197 @@ const ClassroomWidgets = {
   // =========================================================================
   // 33. 段考日考試時程計時器 (Exam Schedule & Countdown Timer)
   // =========================================================================
+  spawnUserGuide(wm) {
+    const content = `
+      <div class="user-guide-container" style="display: flex; flex-direction: column; height: 100%; font-family: var(--font-base, system-ui); color: #1e293b;">
+        <!-- Guide Tabs -->
+        <div style="display: flex; border-bottom: 2px solid #e2e8f0; background: #f8fafc; border-radius: 8px 8px 0 0; padding: 4px 8px 0; gap: 4px; flex-shrink: 0;">
+          <button class="guide-tab-btn active" data-tab="tab-welcome" style="padding: 6px 14px; border: none; background: transparent; font-weight: 800; font-size: 0.85rem; color: #2563EB; border-bottom: 3px solid #2563EB; cursor: pointer;">🌟 快速上手</button>
+          <button class="guide-tab-btn" data-tab="tab-features" style="padding: 6px 14px; border: none; background: transparent; font-weight: 700; font-size: 0.85rem; color: #64748b; cursor: pointer;">🛠️ 互動神器</button>
+          <button class="guide-tab-btn" data-tab="tab-tools-vault" style="padding: 6px 14px; border: none; background: transparent; font-weight: 700; font-size: 0.85rem; color: #64748b; cursor: pointer;">🎁 教學工具庫</button>
+          <button class="guide-tab-btn" data-tab="tab-feedback" style="padding: 6px 14px; border: none; background: transparent; font-weight: 700; font-size: 0.85rem; color: #64748b; cursor: pointer;">📬 問題回報</button>
+        </div>
+
+        <!-- Tab Content Body -->
+        <div style="flex: 1; overflow-y: auto; padding: 14px; font-size: 0.9rem; line-height: 1.6;">
+          
+          <!-- Tab 1: 快速上手 -->
+          <div id="tab-welcome" class="guide-tab-pane" style="display: block;">
+            <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid #bfdbfe;">
+              <h3 style="margin: 0 0 4px; font-size: 1.1rem; color: #1e40af; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-chalkboard-user"></i> 歡迎使用 Puti-AI 教室大螢幕！
+              </h3>
+              <p style="margin: 0; color: #3b82f6; font-size: 0.85rem;">專為智慧大黑板、觸控大螢幕與班級教學設計的全能課堂工具箱。</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px;">🖥️ 視距無憂：大螢幕全域字級</div>
+                <div style="color: #475569; font-size: 0.85rem;">點擊頂部「字級（標準 16 / 中 20 / 大 24 / 特大 28）」，教室最後一排學生依然看得清清楚楚。</div>
+              </div>
+
+              <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px;">🪄 一鍵情境切換與自訂</div>
+                <div style="color: #475569; font-size: 0.85rem;">內建「專注、小組競賽、放學」快速排版；擺好您喜愛的視窗組合後，點擊「存情境」即可永久保存為專屬情境。</div>
+              </div>
+
+              <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px;">👥 全班名單全域連動</div>
+                <div style="color: #475569; font-size: 0.85rem;">在頂部「班級名單」匯入一次學生名冊，幸運抽籤、隨機分組、小組與個人計分自動同步使用。</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: 互動神器 -->
+          <div id="tab-features" class="guide-tab-pane" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="border-left: 4px solid #ef4444; background: #fff; border-radius: 0 8px 8px 0; padding: 10px; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                <div style="font-weight: 800; color: #ef4444; font-size: 0.95rem; margin-bottom: 4px;">🔔 課堂搶答神器</div>
+                <div style="color: #475569; font-size: 0.85rem;">
+                  1. 點擊「顯示學生 QR Code」讓學生手機掃描連線。<br>
+                  2. 老師按「開始搶答」同步解鎖學生按鈕，防止偷跑偷按。<br>
+                  3. 大螢幕即刻唱名並顯示前三名搶答名次，可直接為學生一鍵 +1 分！
+                </div>
+              </div>
+
+              <div style="border-left: 4px solid #3b82f6; background: #fff; border-radius: 0 8px 8px 0; padding: 10px; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                <div style="font-weight: 800; color: #3b82f6; font-size: 0.95rem; margin-bottom: 4px;">📊 課堂即時投票</div>
+                <div style="color: #475569; font-size: 0.85rem;">
+                  提供題庫快速匯入匯出，支援單選/多選模式與「盲投/開箱」即時長條圖呈現，具備防重複投票機制。
+                </div>
+              </div>
+
+              <div style="border-left: 4px solid #8b5cf6; background: #fff; border-radius: 0 8px 8px 0; padding: 10px; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                <div style="font-weight: 800; color: #8b5cf6; font-size: 0.95rem; margin-bottom: 4px;">⏱️ 考試日程計時器</div>
+                <div style="color: #475569; font-size: 0.85rem;">
+                  專為期中/期末段考打造：超大科目名稱、獨立等寬槽位 0 抖動倒數計時、考前提醒與進行中狀態聯動，支援考程快速自訂。
+                </div>
+              </div>
+
+              <div style="border-left: 4px solid #10b981; background: #fff; border-radius: 0 8px 8px 0; padding: 10px; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                <div style="font-weight: 800; color: #10b981; font-size: 0.95rem; margin-bottom: 4px;">📋 作息流程表</div>
+                <div style="color: #475569; font-size: 0.85rem;">
+                  提供「四學模式（自主學習/小組討論/成果分享/教師統整）」與「段考日作息」一鍵載入。
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: 教學工具庫 -->
+          <div id="tab-tools-vault" class="guide-tab-pane" style="display: none;">
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px; margin-bottom: 12px; text-align: center;">
+              <div style="font-size: 1.15rem; font-weight: 800; color: #92400e; margin-bottom: 6px;">
+                📚 Puti-AI 教學工具庫
+              </div>
+              <p style="margin: 0 0 10px; color: #78350f; font-size: 0.88rem;">
+                屏東縣後庄國小黃朝榮老師作品，免費分享，歡迎擴散推廣，嚴禁商用與任何侵權、不尊重著作權的行為
+              </p>
+              <div style="font-size: 0.95rem; font-weight: 800; margin-top: 10px;">
+                更多 Puti-AI 教學工具請：
+                <a href="https://padlet.com/clongwh/puti_ai_tools" target="_blank" style="display: inline-block; background: #d97706; color: #fff; padding: 6px 16px; border-radius: 20px; text-decoration: none; font-weight: bold; margin-left: 4px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);">
+                  點此前往
+                </a>
+              </div>
+            </div>
+
+            <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+              <div style="font-weight: 800; color: #334155; margin-bottom: 6px;">💡 工具庫精彩內容收錄：</div>
+              <ul style="margin: 0; padding-left: 20px; color: #64748b; font-size: 0.85rem;">
+                <li>國小數學出題、審題與幾何畫圖專家工具</li>
+                <li>3D 翻轉卡牌痛點錦囊與簡報產生器</li>
+                <li>互動式 Kahoot 大螢幕/手機雙端思辨系統</li>
+                <li>生字教學、形成性評量互動小遊戲</li>
+                <li>日系風格溫暖班級網頁與教學動畫生成引擎</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Tab 4: 問題回報 -->
+          <div id="tab-feedback" class="guide-tab-pane" style="display: none;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 2.2rem; color: #3b82f6; margin-bottom: 6px;">
+                <i class="fa-solid fa-envelope-open-text"></i>
+              </div>
+              <h3 style="margin: 0 0 6px; font-size: 1.1rem; color: #0f172a;">問題回報與教學建議</h3>
+              <p style="margin: 0 0 14px; color: #64748b; font-size: 0.85rem;">
+                如果您在使用過程中遇到任何問題、或有教學現場的客製工具需求，歡迎隨時與黃老師聯繫交流！
+              </p>
+
+              <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                <span style="font-family: monospace; font-size: 1rem; font-weight: 800; color: #1e293b;">clongwh@gmail.com</span>
+                <button id="guide-copy-email-btn" style="padding: 4px 10px; border-radius: 6px; border: 1px solid #94a3b8; background: #f1f5f9; cursor: pointer; font-size: 0.8rem; font-weight: 600;">📋 複製信箱</button>
+              </div>
+
+              <div>
+                <a href="mailto:clongwh@gmail.com?subject=%E3%80%90Puti-AI%20%E6%95%99%E5%AE%A4%E5%A4%A7%E8%9E%A2%E5%B9%95%E3%80%91%E5%95%8F%E9%A1%8C%E5%9B%9E%E5%A0%B1%E8%88%87%E5%BB%BA%E8%AD%B0" style="display: inline-block; padding: 8px 20px; background: #2563EB; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 0.9rem; box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);">
+                  <i class="fa-solid fa-paper-plane"></i> 立即寄信聯絡作者
+                </a>
+              </div>
+              <div id="guide-copy-tip" style="margin-top: 8px; font-size: 0.8rem; color: #16a34a; font-weight: 700; height: 1.2em;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Footer in Guide -->
+        <div style="padding: 8px 14px; background: #f1f5f9; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #64748b; text-align: center; border-radius: 0 0 8px 8px;">
+          屏東縣後庄國小黃朝榮老師作品，免費分享，歡迎擴散推廣，嚴禁商用與任何侵權、不尊重著作權的行為
+        </div>
+      </div>
+    `;
+
+    wm.createWindow({
+      title: '使用說明與教學工具庫',
+      icon: 'fa-circle-question',
+      iconColor: '#2563EB',
+      width: 540,
+      height: 480,
+      minWidth: 380,
+      minHeight: 360,
+      type: 'user-guide',
+      contentHtml: content,
+      onInit: (winEl) => {
+        const body = winEl.querySelector('.window-body') || winEl;
+        const tabs = body.querySelectorAll('.guide-tab-btn');
+        const panes = body.querySelectorAll('.guide-tab-pane');
+        const copyBtn = body.querySelector('#guide-copy-email-btn');
+        const copyTip = body.querySelector('#guide-copy-tip');
+
+        tabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            tabs.forEach(t => {
+              t.classList.remove('active');
+              t.style.color = '#64748b';
+              t.style.borderBottom = 'none';
+            });
+            panes.forEach(p => p.style.display = 'none');
+
+            tab.classList.add('active');
+            tab.style.color = '#2563EB';
+            tab.style.borderBottom = '3px solid #2563EB';
+
+            const targetId = tab.getAttribute('data-tab');
+            const targetPane = body.querySelector('#' + targetId);
+            if (targetPane) targetPane.style.display = 'block';
+          });
+        });
+
+        if (copyBtn) {
+          copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText('clongwh@gmail.com').then(() => {
+              if (copyTip) {
+                copyTip.textContent = '✓ 已複製信箱地址 (clongwh@gmail.com)';
+                setTimeout(() => { if (copyTip) copyTip.textContent = ''; }, 3000);
+              }
+            }).catch(() => {
+              if (copyTip) copyTip.textContent = '信箱地址：clongwh@gmail.com';
+            });
+          });
+        }
+      }
+    });
+  },
+
   spawnExamTimer(wm) {
     const defaultExamSchedule = {
       day1: [

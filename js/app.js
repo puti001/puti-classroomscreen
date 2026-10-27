@@ -42,7 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'tally': () => ClassroomWidgets.spawnIndividualTally(wm),
     'timetable': () => ClassroomWidgets.spawnTimetable(wm),
     'days-countdown': () => ClassroomWidgets.spawnDaysCountdown(wm),
-    'exam-timer': () => ClassroomWidgets.spawnExamTimer(wm)
+    'exam-timer': () => ClassroomWidgets.spawnExamTimer(wm),
+    'user-guide': () => ClassroomWidgets.spawnUserGuide(wm)
   };
 
   // =========================================================================
@@ -195,7 +196,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   const soundToggleBtn = document.getElementById('btn-toggle-sound');
   const fullscreenBtn = document.getElementById('btn-fullscreen');
-  const resetLayoutBtn = document.getElementById('btn-reset-layout');
+  const resetLayoutBtn =   // User Guide Modal
+  document.getElementById('btn-user-guide')?.addEventListener('click', () => {
+    ClassroomWidgets.spawnUserGuide(wm);
+  });
+
+  document.getElementById('btn-reset-layout');
   const tickerText = document.getElementById('classroom-ticker');
   const toggleDesktopBtn = document.getElementById('btn-toggle-desktop');
 
