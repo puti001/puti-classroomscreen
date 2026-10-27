@@ -51,6 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   const wallpapers = [
     {
+      id: 'default-back',
+      name: '溫馨黑板 (預設)',
+      url: './assets/wallpapers/back.png',
+      thumb: './assets/wallpapers/back.png'
+    },
+    {
       id: 'warm-gradient',
       name: '日系暖日粉彩',
       url: 'linear-gradient(135deg, #FFE8CC 0%, #FFD8A8 50%, #FFC078 100%)',
@@ -90,7 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
-  let currentWallpaper = localStorage.getItem('puti_cs_wallpaper') || wallpapers[0].url;
+  let savedWp = localStorage.getItem('puti_cs_wallpaper');
+  if (!savedWp || savedWp.includes('#FFE8CC')) {
+    savedWp = wallpapers[0].url;
+    localStorage.setItem('puti_cs_wallpaper', savedWp);
+  }
+  let currentWallpaper = savedWp;
   let wallpaperBlur = localStorage.getItem('puti_cs_wp_blur') || '0';
   let wallpaperDim = localStorage.getItem('puti_cs_wp_dim') || '0.12';
 
