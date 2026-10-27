@@ -258,6 +258,18 @@
         onSuccess: () => {
           connDot.classList.add('connected');
           document.getElementById('room-display').textContent = '已連線教室 ' + room;
+          // Notify smartboard that phone has joined
+          try {
+            const joinPayload = JSON.stringify({
+              type: 'PHONE_JOINED',
+              room: room,
+              deviceName: '手機無線鏡頭',
+              timestamp: Date.now()
+            });
+            const joinMsg = new Paho.MQTT.Message(joinPayload);
+            joinMsg.destinationName = `puti/class/${room}/webcam/join`;
+            mqttClient.send(joinMsg);
+          } catch(e) {}
         },
         onFailure: () => {
           connDot.classList.remove('connected');
@@ -285,7 +297,7 @@
           timestamp: Date.now()
         });
         const msg = new Paho.MQTT.Message(payload);
-        msg.destinationName = `puti/classroom/${room}/webcam/snapshot`;
+        msg.destinationName = `puti/class/${room}/webcam/snapshot`;
         mqttClient.send(msg);
 
         // UI Toast

@@ -548,24 +548,48 @@ body {
 }
 
 
-.symbol-card ruby.zy-side {
-  display: inline-flex;
+.symbol-card ruby.zy-box {
+  display: inline-flex !important;
   align-items: center;
   vertical-align: middle;
-  margin: 0 1px;
+  margin: 0 1.5px;
+  line-height: 1;
 }
-.symbol-card ruby.zy-side rt {
-  display: inline-block;
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  font-size: 0.45em;
-  font-weight: 700;
-  color: #7C3AED;
-  line-height: 0.95;
-  letter-spacing: -1px;
-  user-select: none;
+.symbol-card .zy-char {
+  font-weight: 800;
+  line-height: 1.1;
+}
+.symbol-card .zy-rt {
+  display: inline-flex !important;
+  flex-direction: row;
+  align-items: flex-end;
   margin-left: 2px;
-  font-family: var(--font-base, system-ui);
+  user-select: none;
+  line-height: 1;
+}
+.symbol-card .zy-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 0.92;
+  font-size: 0.44em;
+  font-weight: 800;
+  color: #7C3AED;
+}
+.symbol-card .zy-sym {
+  display: block;
+  line-height: 1;
+}
+.symbol-card .zy-tone {
+  display: inline-block;
+  font-size: 0.42em;
+  font-weight: 900;
+  color: #7C3AED;
+  line-height: 1;
+  margin-left: 1px;
+  align-self: flex-end;
+  margin-bottom: 2px;
 }
 .work-symbols-container .symbol-name {
   line-height: 1.35;

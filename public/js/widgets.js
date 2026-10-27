@@ -2024,38 +2024,56 @@ const ClassroomWidgets = {
     let wsScale = 1.0;
     let isZhuyin = localStorage.getItem('puti_ws_zhuyin') === 'true';
 
+    // 依台灣國小課本標準產生字右側直排注音，聲調標於韻母右側
+    const makeZyHtml = (pairs) => {
+      return pairs.map(([char, rawZy]) => {
+        let tone = '';
+        let letters = '';
+        for (const ch of rawZy) {
+          if ('ˊˇˋ˙'.includes(ch)) {
+            tone = ch;
+          } else {
+            letters += ch;
+          }
+        }
+        const symsHtml = Array.from(letters).map(s => `<span class="zy-sym">${s}</span>`).join('');
+        const toneHtml = tone ? `<span class="zy-tone">${tone}</span>` : '';
+        return `<ruby class="zy-box"><rb class="zy-char">${char}</rb><rt class="zy-rt"><span class="zy-col">${symsHtml}</span>${toneHtml}</rt></ruby>`;
+      }).join('');
+    };
+
     const symbols = [
       {
         id: 'silent',
         icon: '🤫',
         name: '保持安靜',
         desc: '獨立自主專注思考',
-        rubyName: '<ruby class="zy-side">保<rt>ㄅㄠˇ</rt></ruby><ruby class="zy-side">持<rt>ㄔˊ</rt></ruby><ruby class="zy-side">安<rt>ㄢ</rt></ruby><ruby class="zy-side">靜<rt>ㄐㄧㄥˋ</rt></ruby>',
-        rubyDesc: '<ruby class="zy-side">獨<rt>ㄉㄨˊ</rt></ruby><ruby class="zy-side">立<rt>ㄌㄧˋ</rt></ruby><ruby class="zy-side">自<rt>ㄗˋ</rt></ruby><ruby class="zy-side">主<rt>ㄓㄨˇ</rt></ruby><ruby class="zy-side">專<rt>ㄓㄨㄢ</rt></ruby><ruby class="zy-side">注<rt>ㄓㄨˋ</rt></ruby><ruby class="zy-side">思<rt>ㄙ</rt></ruby><ruby class="zy-side">考<rt>ㄎㄠˇ</rt></ruby>'
+        rubyName: makeZyHtml([['保', 'ㄅㄠˇ'], ['持', 'ㄔˊ'], ['安', 'ㄢ'], ['靜', 'ㄐㄧㄥˋ']]),
+        rubyDesc: makeZyHtml([['獨', 'ㄉㄨˊ'], ['立', 'ㄌㄧˋ'], ['自', 'ㄗˋ'], ['主', 'ㄓㄨˇ'], ['專', 'ㄓㄨㄢ'], ['注', 'ㄓㄨˋ'], ['思', 'ㄙ'], ['考', 'ㄎㄠˇ']])
       },
       {
         id: 'whisper',
         icon: '👂',
         name: '輕聲細語',
         desc: '相鄰同學悄悄交換意見',
-        rubyName: '<ruby class="zy-side">輕<rt>ㄑㄧㄥ</rt></ruby><ruby class="zy-side">聲<rt>ㄕㄥ</rt></ruby><ruby class="zy-side">細<rt>ㄒㄧˋ</rt></ruby><ruby class="zy-side">語<rt>ㄩˇ</rt></ruby>',
-        rubyDesc: '<ruby class="zy-side">相<rt>ㄒㄧㄤ</rt></ruby><ruby class="zy-side">鄰<rt>ㄌㄧㄣˊ</rt></ruby><ruby class="zy-side">同<rt>ㄊㄨㄥˊ</rt></ruby><ruby class="zy-side">學<rt>ㄒㄩㄝˊ</rt></ruby><ruby class="zy-side">悄<rt>ㄑㄧㄠˇ</rt></ruby><ruby class="zy-side">悄<rt>ㄑㄧㄠˇ</rt></ruby><ruby class="zy-side">交<rt>ㄐㄧㄠ</rt></ruby><ruby class="zy-side">換<rt>ㄏㄨㄢˋ</rt></ruby><ruby class="zy-side">意<rt>ㄧˋ</rt></ruby><ruby class="zy-side">見<rt>ㄐㄧㄢˋ</rt></ruby>'
+        rubyName: makeZyHtml([['輕', 'ㄑㄧㄥ'], ['聲', 'ㄕㄥ'], ['細', 'ㄒㄧˋ'], ['語', 'ㄩˇ']]),
+        rubyDesc: makeZyHtml([['相', 'ㄒㄧㄤ'], ['鄰', 'ㄌㄧㄣˊ'], ['同', 'ㄊㄨㄥˊ'], ['學', 'ㄒㄩㄝˊ'], ['悄', 'ㄑㄧㄠˇ'], ['悄', 'ㄑㄧㄠˇ'], ['交', 'ㄐㄧㄠ'], ['換', 'ㄏㄨㄢˋ'], ['意', 'ㄧˋ'], ['見', 'ㄐㄧㄢˋ']])
       },
       {
         id: 'group',
         icon: '🤝',
         name: '小組合作',
         desc: '同組夥伴熱烈討論交流',
-        rubyName: '<ruby class="zy-side">小<rt>ㄒㄧㄠˇ</rt></ruby><ruby class="zy-side">組<rt>ㄗㄨˇ</rt></ruby><ruby class="zy-side">合<rt>ㄏㄜˊ</rt></ruby><ruby class="zy-side">作<rt>ㄗㄨㄛˋ</rt></ruby>',
-        rubyDesc: '<ruby class="zy-side">同<rt>ㄊㄨㄥˊ</rt></ruby><ruby class="zy-side">組<rt>ㄗㄨˇ</rt></ruby><ruby class="zy-side">夥<rt>ㄏㄨㄛˇ</rt></ruby><ruby class="zy-side">伴<rt>ㄅㄢˋ</rt></ruby><ruby class="zy-side">熱<rt>ㄖㄜˋ</rt></ruby><ruby class="zy-side">烈<rt>ㄌㄧㄝˋ</rt></ruby><ruby class="zy-side">討<rt>ㄊㄠˇ</rt></ruby><ruby class="zy-side">論<rt>ㄌㄨㄣˋ</rt></ruby><ruby class="zy-side">交<rt>ㄐㄧㄠ</rt></ruby><ruby class="zy-side">流<rt>ㄌㄧㄡˊ</rt></ruby>'
+        rubyName: makeZyHtml([['小', 'ㄒㄧㄠˇ'], ['組', 'ㄗㄨˇ'], ['合', 'ㄏㄜˊ'], ['作', 'ㄗㄨㄛˋ']]),
+        rubyDesc: makeZyHtml([['同', 'ㄊㄨㄥˊ'], ['組', 'ㄗㄨˇ'], ['夥', 'ㄏㄨㄛˇ'], ['伴', 'ㄅㄢˋ'], ['熱', 'ㄖㄜˋ'], ['烈', 'ㄌㄧㄝˋ'], ['討', 'ㄊㄠˇ'], ['論', 'ㄌㄨㄣˋ'], ['交', 'ㄐㄧㄠ'], ['流', 'ㄌㄧㄡˊ']])
       },
       {
         id: 'class',
         icon: '📢',
         name: '全班發表',
         desc: '安靜聆聽他人發言分享',
-        rubyName: '<ruby class="zy-side">全<rt>ㄑㄩㄢˊ</rt></ruby><ruby class="zy-side">班<rt>ㄅㄢ</rt></ruby><ruby class="zy-side">發<rt>ㄈㄚ</rt></ruby><ruby class="zy-side">表<rt>ㄅㄧㄠˇ</rt></ruby>',
-        rubyDesc: '<ruby class="zy-side">安<rt>ㄢ</rt></ruby><ruby class="zy-side">靜<rt>ㄐㄧㄥˋ</rt></ruby><ruby class="zy-side">聆<rt>ㄌㄧㄥˊ</rt></ruby><ruby class="zy-side">聽<rt>ㄊㄧㄥ</rt></ruby><ruby class="zy-side">他<rt>ㄊㄚ</rt></ruby><ruby class="zy-side">人<rt>ㄖㄣˊ</rt></ruby><ruby class="zy-side">發<rt>ㄈㄚ</rt></ruby><ruby class="zy-side">言<rt>ㄧㄢˊ</rt></ruby><ruby class="zy-side">分<rt>ㄈㄣ</rt></ruby><ruby class="zy-side">享<rt>ㄒㄧㄤˇ</rt></ruby>'
+        rubyName: makeZyHtml([['全', 'ㄑㄩㄢˊ'], ['班', 'ㄅㄢ'], ['發', 'ㄈㄚ'], ['表', 'ㄅㄧㄠˇ']]),
+        rubyDesc: makeZyHtml([['安', 'ㄢ'], ['靜', 'ㄐㄧㄥˋ'], ['聆', 'ㄌㄧㄥˊ'], ['聽', 'ㄊㄧㄥ'], ['他', 'ㄊㄚ'], ['人', 'ㄖㄣˊ'], ['發', 'ㄈㄚ'], ['言', 'ㄧㄢˊ'], ['分', 'ㄈㄣ'], ['享', 'ㄒㄧㄤˇ']])
       }
     ];
     const content = `
@@ -2848,14 +2866,16 @@ const ClassroomWidgets = {
     let stream = null;
     let mirrored = false;
     let isFrozen = false;
+    let currentMode = 'webcam'; // 'webcam' | 'mobile'
     const room = localStorage.getItem('puti_classroom_room') || 'C8888';
 
     const content = `
       <div class="webcam-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
         <!-- Top Controls Bar -->
         <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-          <select id="webcam-device-select" style="flex: 1; min-width: 140px; height: 32px; padding: 2px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); outline: none; font-size: 0.82rem; font-weight: 700; background: #FFF;">
-            <option value="">預設鏡頭 / 實物投影機</option>
+          <select id="webcam-device-select" style="flex: 1; min-width: 170px; height: 32px; padding: 2px 10px; border-radius: var(--radius-pill); border: 1.5px solid #CBD5E1; outline: none; font-size: 0.82rem; font-weight: 700; background: #FFF; color: #1E293B; cursor: pointer;">
+            <option value="">本機鏡頭 / USB實物投影機</option>
+            <option value="mobile-cam" style="color: #2563EB; font-weight: 800;">📱 手機無線實物投影 (請選擇)</option>
           </select>
           <button class="action-btn-secondary" id="webcam-mirror-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; flex: 0 0 auto;" title="左右翻轉鏡像">
             <i class="fa-solid fa-arrows-left-right"></i> 鏡像
@@ -2863,8 +2883,8 @@ const ClassroomWidgets = {
           <button class="action-btn-secondary" id="webcam-snap-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; flex: 0 0 auto;" title="拍照定格 / 另存為圖片">
             <i class="fa-solid fa-camera"></i> 定格截圖
           </button>
-          <button class="action-btn-secondary" id="webcam-mobile-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; flex: 0 0 auto; font-weight: 800;" title="使用手機相機當作無線實物投影機">
-            <i class="fa-solid fa-mobile-screen"></i> 手機投影
+          <button class="action-btn-secondary" id="webcam-mobile-btn" style="height: 32px; padding: 0 10px; font-size: 0.78rem; color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; flex: 0 0 auto; font-weight: 800;" title="顯示手機掃碼連線 QR Code">
+            <i class="fa-solid fa-qrcode"></i> 手機掃碼
           </button>
         </div>
 
@@ -2872,19 +2892,37 @@ const ClassroomWidgets = {
         <div class="webcam-video-box" style="flex: 1; background: #0F172A; border-radius: var(--radius-sm); overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; min-height: 220px;">
           <video id="webcam-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; display: block; background: #000;"></video>
           <canvas id="webcam-canvas" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;"></canvas>
-          <div id="webcam-empty-tip" style="position: absolute; color: #94A3B8; font-size: 0.9rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;">
+          
+          <!-- Empty View / Standby -->
+          <div id="webcam-empty-tip" style="position: absolute; color: #94A3B8; font-size: 0.9rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; text-align: center; padding: 16px;">
             <i class="fa-solid fa-camera-retro" style="font-size: 2.2rem; color: #475569;"></i>
-            <span>尚未開啟鏡頭，點擊下方「開啟鏡頭」或「手機投影」</span>
+            <span>點擊下方「開啟鏡頭」或於上方選單切換「📱 手機無線實物投影」</span>
           </div>
-          <div id="webcam-freeze-badge" style="display: none; position: absolute; top: 10px; left: 10px; background: rgba(220, 38, 38, 0.9); color: #FFF; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+
+          <!-- Mobile QR Code Overlay (shows when mobile mode is selected and waiting for phone) -->
+          <div id="webcam-mobile-qr-box" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 5; padding: 14px; text-align: center;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: #38BDF8; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-mobile-screen"></i> 手機無線實物投影機（教室頻道: ${room}）
+            </div>
+            <div id="webcam-qr-container" style="background: #FFF; padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
+            <div style="font-size: 0.8rem; color: #E2E8F0; font-weight: 600;">
+              請用手機相機掃描 QR Code，即可將手機當作無線實物投影機，對準學生作業一按即投！
+            </div>
+          </div>
+
+          <!-- Status Badges -->
+          <div id="webcam-freeze-badge" style="display: none; position: absolute; top: 10px; left: 10px; background: rgba(220, 38, 38, 0.9); color: #FFF; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 8;">
             ⏸️ 畫面已定格
+          </div>
+          <div id="webcam-source-badge" style="display: none; position: absolute; top: 10px; right: 10px; background: rgba(37, 99, 235, 0.9); color: #FFF; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 8;">
+            📱 手機投影連線中
           </div>
         </div>
 
         <!-- Bottom Controls Bar (Fixed height, no giant button) -->
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-          <div style="font-size: 0.78rem; color: #64748B; font-weight: 700;">
-            💡 提示：支援 USB 實物投影機、外接視訊鏡頭或手機無線串流
+          <div style="font-size: 0.78rem; color: #64748B; font-weight: 700;" id="webcam-status-tip">
+            💡 支援 USB 實物投影機、電腦鏡頭或手機無線串流
           </div>
           <button id="webcam-toggle-btn" style="height: 34px; padding: 0 18px; font-size: 0.85rem; font-weight: 800; border: none; border-radius: var(--radius-pill); background: linear-gradient(135deg, #FF9F1C, #FF7B00); color: #FFF; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(255,159,28,0.3); flex: 0 0 auto; transition: all 0.2s;">
             <i class="fa-solid fa-video"></i> 開啟鏡頭
@@ -2900,61 +2938,105 @@ const ClassroomWidgets = {
         const canvas = el.querySelector('#webcam-canvas');
         const emptyTip = el.querySelector('#webcam-empty-tip');
         const freezeBadge = el.querySelector('#webcam-freeze-badge');
+        const sourceBadge = el.querySelector('#webcam-source-badge');
         const toggleBtn = el.querySelector('#webcam-toggle-btn');
         const mirrorBtn = el.querySelector('#webcam-mirror-btn');
         const snapBtn = el.querySelector('#webcam-snap-btn');
         const mobileBtn = el.querySelector('#webcam-mobile-btn');
         const deviceSelect = el.querySelector('#webcam-device-select');
+        const mobileQrBox = el.querySelector('#webcam-mobile-qr-box');
+        const qrContainer = el.querySelector('#webcam-qr-container');
+        const statusTip = el.querySelector('#webcam-status-tip');
 
-        // Enumerate devices
+        const origin = window.location.origin;
+        const mobileUrl = origin + (origin.includes('github.io') ? '/puti-classroomscreen' : '') + '/mobile-cam.html?room=' + room;
+
+        // Generate in-box QR Code
+        if (typeof QRCode !== 'undefined' && qrContainer) {
+          qrContainer.innerHTML = '';
+          new QRCode(qrContainer, {
+            text: mobileUrl,
+            width: 140,
+            height: 140,
+            colorDark: '#0f172a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+
+        // Enumerate local webcam devices
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices().then(devices => {
             const vds = devices.filter(d => d.kind === 'videoinput');
             if (vds.length > 0) {
-              deviceSelect.innerHTML = vds.map((d, i) => `<option value="${d.deviceId}">${d.label || `攝影機 ${i+1}`}</option>`).join('');
+              const optionsHtml = vds.map((d, i) => `<option value="${d.deviceId}">${d.label || `攝影機 ${i+1}`}</option>`).join('');
+              deviceSelect.innerHTML = `<option value="">本機鏡頭 / USB實物投影機</option>${optionsHtml}<option value="mobile-cam" style="color: #2563EB; font-weight: 800;">📱 手機無線實物投影 (請選擇)</option>`;
             }
           }).catch(console.warn);
         }
 
-        const start = async () => {
+        const startLocalWebcam = async () => {
           try {
             const id = deviceSelect.value;
             const constraints = {
-              video: id ? { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1920 }, height: { ideal: 1080 } }
+              video: id && id !== 'mobile-cam' ? { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 } } : { width: { ideal: 1920 }, height: { ideal: 1080 } }
             };
             stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
             emptyTip.style.display = 'none';
+            mobileQrBox.style.display = 'none';
             canvas.style.display = 'none';
             video.style.display = 'block';
+            sourceBadge.style.display = 'none';
             isFrozen = false;
             freezeBadge.style.display = 'none';
             toggleBtn.innerHTML = '<i class="fa-solid fa-stop"></i> 關閉鏡頭';
             toggleBtn.style.background = '#EF4444';
-            toggleBtn.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.35)';
+            statusTip.textContent = '🟢 本機實物投影機/鏡頭運作中';
           } catch(e) {
-            alert('⚠️ 無法存取相機鏡頭！請確認瀏覽器網址列已允許相機權限，或檢查鏡頭是否已被其他程式佔用。');
+            alert('⚠️ 無法存取本機鏡頭！請確認瀏覽器已允許相機權限，或檢查鏡頭是否被其他程式佔用。');
           }
         };
 
-        const stop = () => {
+        const stopLocalWebcam = () => {
           if (stream) {
             stream.getTracks().forEach(t => t.stop());
             stream = null;
           }
           video.srcObject = null;
-          emptyTip.style.display = 'flex';
+          if (currentMode === 'webcam') {
+            emptyTip.style.display = 'flex';
+            mobileQrBox.style.display = 'none';
+          }
           canvas.style.display = 'none';
-          video.style.display = 'block';
           isFrozen = false;
           freezeBadge.style.display = 'none';
           toggleBtn.innerHTML = '<i class="fa-solid fa-video"></i> 開啟鏡頭';
           toggleBtn.style.background = 'linear-gradient(135deg, #FF9F1C, #FF7B00)';
-          toggleBtn.style.boxShadow = '0 2px 8px rgba(255, 159, 28, 0.3)';
+          statusTip.textContent = '💡 支援 USB 實物投影機、電腦鏡頭或手機無線串流';
         };
 
+        // Switch source mode from Dropdown
+        deviceSelect.addEventListener('change', () => {
+          if (deviceSelect.value === 'mobile-cam') {
+            currentMode = 'mobile';
+            stopLocalWebcam();
+            emptyTip.style.display = 'none';
+            mobileQrBox.style.display = 'flex';
+            toggleBtn.style.display = 'none';
+            statusTip.textContent = '📱 手機模式：請用手機掃描 QR 碼開始無線投影';
+          } else {
+            currentMode = 'webcam';
+            mobileQrBox.style.display = 'none';
+            toggleBtn.style.display = 'inline-flex';
+            sourceBadge.style.display = 'none';
+            startLocalWebcam();
+          }
+          window.soundEngine.playTick();
+        });
+
         toggleBtn.addEventListener('click', () => {
-          if (stream) stop(); else start();
+          if (stream) stopLocalWebcam(); else startLocalWebcam();
           window.soundEngine.playPop();
         });
 
@@ -2968,7 +3050,7 @@ const ClassroomWidgets = {
 
         // Freeze / Snapshot
         snapBtn.addEventListener('click', () => {
-          if (!stream && !isFrozen) {
+          if (!stream && !isFrozen && currentMode !== 'mobile') {
             alert('請先點擊「開啟鏡頭」後再進行定格截圖！');
             return;
           }
@@ -2994,20 +3076,36 @@ const ClassroomWidgets = {
           }
         });
 
-        // Mobile Camera Wireless Projection
+        // Mobile Camera QR Code button
         mobileBtn.addEventListener('click', () => {
-          const origin = window.location.origin;
-          const mobileUrl = origin + (origin.includes('github.io') ? '/puti-classroomscreen' : '') + '/mobile-cam.html?room=' + room;
           if (typeof window.openQRLightbox === 'function') {
-            window.openQRLightbox('📱 手機無線實物投影機', mobileUrl, `請用手機掃描 QR Code，即可將手機後鏡頭當作無線實物投影機，巡堂對準學生作業即時投影至此大螢幕！`);
+            window.openQRLightbox('📱 手機無線實物投影機', mobileUrl, `請用手機相機掃描 QR Code，即可將手機當作無線實物投影機，對準學生作業一按即投！`);
           } else {
             prompt('請用手機開啟以下連結（或掃描 QR 碼）：', mobileUrl);
           }
           window.soundEngine.playBell();
         });
 
-        // Listen for mobile camera snapshots / photos over realtimeEngine
+        // Realtime MQTT listener for Mobile Phone
         if (window.realtimeEngine) {
+          // 1. Phone Join notification
+          window.realtimeEngine.subscribe('webcam/join', (data) => {
+            const mobileOpt = deviceSelect.querySelector('option[value="mobile-cam"]');
+            if (mobileOpt) {
+              mobileOpt.textContent = `📱 手機無線實物投影 (已連線 🟢)`;
+            }
+            deviceSelect.value = 'mobile-cam';
+            currentMode = 'mobile';
+            stopLocalWebcam();
+            emptyTip.style.display = 'none';
+            mobileQrBox.style.display = 'none';
+            sourceBadge.textContent = '📱 手機無線鏡頭已連線';
+            sourceBadge.style.display = 'block';
+            statusTip.textContent = '🟢 手機已成功連線！請在手機端點擊「拍作業・投至大螢幕」';
+            window.soundEngine.playSuccess();
+          });
+
+          // 2. Phone Snapshot / Live Frame
           window.realtimeEngine.subscribe('webcam/snapshot', (data) => {
             if (data && data.imageUrl) {
               const img = new Image();
@@ -3019,11 +3117,13 @@ const ClassroomWidgets = {
                 canvas.style.display = 'block';
                 video.style.display = 'none';
                 emptyTip.style.display = 'none';
-                isFrozen = true;
-                freezeBadge.innerHTML = '📱 來自手機作業投影';
-                freezeBadge.style.display = 'block';
-                snapBtn.innerHTML = '<i class="fa-solid fa-play"></i> 關閉定格';
-                window.soundEngine.playSuccess();
+                mobileQrBox.style.display = 'none';
+                sourceBadge.textContent = '📱 來自手機作業投影';
+                sourceBadge.style.display = 'block';
+                statusTip.textContent = '📷 已接收手機作業投影畫面！';
+                if (!isFrozen) {
+                  window.soundEngine.playSuccess();
+                }
               };
               img.src = data.imageUrl;
             }
@@ -3038,8 +3138,6 @@ const ClassroomWidgets = {
       }
     });
   },
-
-
   spawnAmbientSound(wm) {
     let currentNoise = null, audioCtx = null;
     const sounds = [{ id: 'rain', name: '綿綿細雨', icon: 'fa-cloud-rain' }, { id: 'forest', name: '森林鳥語', icon: 'fa-tree' }, { id: 'waves', name: '海浪拍岸', icon: 'fa-water' }, { id: 'cafe', name: '午後咖啡', icon: 'fa-mug-hot' }];
