@@ -191,22 +191,30 @@
     ];
     let brokerIndex = 0;
     let client = null;
+    let isConnecting = false;
+    let reconnectTimeout = null;
 
     function initClient() {
+      if (isConnecting || (client && client.isConnected())) return;
+      isConnecting = true;
+
       const broker = brokers[brokerIndex % brokers.length];
-      const clientId = 'puti_buzzer_' + Math.random().toString(16).substring(2, 10);
+      const clientId = 'puti_b_' + Math.random().toString(16).substring(2, 10);
 
       try {
         if (client) {
-          try { client.disconnect(); } catch(e) {}
+          try { client.disconnect(); } catch (e) {}
         }
         client = new Paho.MQTT.Client(broker.host, broker.port, broker.path, clientId);
 
-        client.onConnectionLost = () => {
-          connBadge.className = 'status-badge connecting';
-          connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
-          brokerIndex++;
-          setTimeout(initClient, 2000);
+        client.onConnectionLost = (responseObject) => {
+          isConnecting = false;
+          if (responseObject.errorCode !== 0) {
+            connBadge.className = 'status-badge connecting';
+            connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
+            brokerIndex++;
+            scheduleReconnect(3000);
+          }
         };
 
         client.onMessageArrived = (msg) => {
@@ -248,24 +256,33 @@
 
         client.connect({
           useSSL: true,
-          timeout: 4,
+          timeout: 5,
+          keepAliveInterval: 30,
           cleanSession: true,
           onSuccess: () => {
+            isConnecting = false;
             connBadge.className = 'status-badge connected';
             connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
             client.subscribe(`puti/class/${room}/buzzer/state`);
           },
           onFailure: (err) => {
+            isConnecting = false;
             connBadge.className = 'status-badge connecting';
             connBadge.textContent = '切換線路連線中...';
             brokerIndex++;
-            setTimeout(initClient, 2500);
+            scheduleReconnect(3500);
           }
         });
       } catch (err) {
+        isConnecting = false;
         brokerIndex++;
-        setTimeout(initClient, 2500);
+        scheduleReconnect(3500);
       }
+    }
+
+    function scheduleReconnect(delayMs) {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(initClient, delayMs);
     }
 
     initClient();

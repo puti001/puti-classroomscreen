@@ -9,9 +9,11 @@ class ClassroomRealtimeEngine {
     this.room = this.getOrCreateRoomId();
     this.client = null;
     this.connected = false;
+    this.connecting = false;
     this.listeners = {};
     this.pendingSubscriptions = new Set();
     this.currentBrokerIndex = 0;
+    this.reconnectTimer = null;
 
     // High availability public TLS MQTT brokers list
     this.brokers = [
@@ -29,7 +31,6 @@ class ClassroomRealtimeEngine {
   getOrCreateRoomId() {
     let room = localStorage.getItem('puti_classroom_room');
     if (!room) {
-      // 5-character friendly uppercase code
       room = 'C' + Math.floor(10000 + Math.random() * 90000);
       localStorage.setItem('puti_classroom_room', room);
     }
@@ -40,6 +41,16 @@ class ClassroomRealtimeEngine {
     if (typeof Paho === 'undefined') {
       console.warn('[RealtimeEngine] Paho MQTT not loaded, relying on BroadcastChannel fallback.');
       return;
+    }
+
+    if (this.connecting || (this.client && this.connected)) {
+      return;
+    }
+
+    this.connecting = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
 
     const broker = this.brokers[this.currentBrokerIndex % this.brokers.length];
@@ -54,10 +65,12 @@ class ClassroomRealtimeEngine {
 
       this.client.onConnectionLost = (responseObject) => {
         this.connected = false;
-        console.warn(`[RealtimeEngine] Connection lost from ${broker.host}:`, responseObject.errorMessage);
-        // Switch to next broker on disconnect
-        this.currentBrokerIndex++;
-        setTimeout(() => this.initMqtt(), 2500);
+        this.connecting = false;
+        if (responseObject.errorCode !== 0) {
+          console.warn(`[RealtimeEngine] Connection lost from ${broker.host}:`, responseObject.errorMessage);
+          this.currentBrokerIndex++;
+          this.scheduleReconnect(3000);
+        }
       };
 
       this.client.onMessageArrived = (message) => {
@@ -77,6 +90,7 @@ class ClassroomRealtimeEngine {
         cleanSession: true,
         onSuccess: () => {
           this.connected = true;
+          this.connecting = false;
           console.log(`[RealtimeEngine] Connected to MQTT Broker (${broker.host}). Room: ${this.room}`);
 
           // Default smartboard subscriptions
@@ -91,18 +105,28 @@ class ClassroomRealtimeEngine {
         },
         onFailure: (err) => {
           this.connected = false;
-          console.warn(`[RealtimeEngine] Connection failed to ${broker.host}, trying fallback broker...`, err);
+          this.connecting = false;
+          console.warn(`[RealtimeEngine] Connection failed to ${broker.host}, switching broker...`, err);
           this.currentBrokerIndex++;
-          setTimeout(() => this.initMqtt(), 3000);
+          this.scheduleReconnect(3500);
         }
       };
 
       this.client.connect(options);
     } catch (e) {
+      this.connected = false;
+      this.connecting = false;
       console.warn('[RealtimeEngine] MQTT init error:', e);
       this.currentBrokerIndex++;
-      setTimeout(() => this.initMqtt(), 3000);
+      this.scheduleReconnect(3500);
     }
+  }
+
+  scheduleReconnect(delayMs) {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      this.initMqtt();
+    }, delayMs);
   }
 
   initBroadcastFallback() {
@@ -125,7 +149,6 @@ class ClassroomRealtimeEngine {
     this.listeners[fullTopic].push(callback);
     this.pendingSubscriptions.add(topicSuffix);
 
-    // If client is already connected, subscribe immediately to broker
     if (this.client && this.connected) {
       try {
         this.client.subscribe(fullTopic);

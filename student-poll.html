@@ -131,6 +131,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     const room = urlParams.get('room') || localStorage.getItem('puti_classroom_room') || 'DEFAULT';
     
+    // Generate or retrieve persistent student device ID
+    let voterId = localStorage.getItem('puti_student_voter_id');
+    if (!voterId) {
+      voterId = 'v_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('puti_student_voter_id', voterId);
+    }
+
     document.getElementById('room-badge').textContent = `教室代碼：${room}`;
     const connBadge = document.getElementById('conn-badge');
     const titleEl = document.getElementById('poll-title');
@@ -147,10 +154,15 @@
     ];
     let brokerIndex = 0;
     let client = null;
+    let isConnecting = false;
+    let reconnectTimeout = null;
 
     function initClient() {
+      if (isConnecting || (client && client.isConnected())) return;
+      isConnecting = true;
+
       const broker = brokers[brokerIndex % brokers.length];
-      const clientId = 'puti_voter_' + Math.random().toString(16).substring(2, 10);
+      const clientId = 'puti_v_' + Math.random().toString(16).substring(2, 10);
       
       try {
         if (client) {
@@ -159,22 +171,22 @@
         client = new Paho.MQTT.Client(broker.host, broker.port, broker.path, clientId);
 
         client.onConnectionLost = (responseObject) => {
-          connBadge.className = 'status-badge connecting';
-          connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
-          brokerIndex++;
-          setTimeout(initClient, 2000);
+          isConnecting = false;
+          if (responseObject.errorCode !== 0) {
+            connBadge.className = 'status-badge connecting';
+            connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
+            brokerIndex++;
+            scheduleReconnect(3000);
+          }
         };
 
         client.onMessageArrived = (msg) => {
           try {
             const payload = JSON.parse(msg.payloadString);
             if (payload.type === 'POLL_SYNC') {
-              currentPoll = payload.poll;
-              render();
+              handlePollSync(payload.poll);
             } else if (payload.type === 'POLL_RESET') {
-              selectedOptionIdx = null;
-              successBox.style.display = 'none';
-              render();
+              handlePollReset();
             }
           } catch (e) {
             console.error(e);
@@ -183,9 +195,11 @@
 
         client.connect({
           useSSL: true,
-          timeout: 4,
+          timeout: 5,
+          keepAliveInterval: 30,
           cleanSession: true,
           onSuccess: () => {
+            isConnecting = false;
             connBadge.className = 'status-badge connected';
             connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
             // Subscribe to poll state from host
@@ -197,16 +211,23 @@
             client.send(req);
           },
           onFailure: (err) => {
+            isConnecting = false;
             connBadge.className = 'status-badge connecting';
             connBadge.textContent = '切換線路連線中...';
             brokerIndex++;
-            setTimeout(initClient, 2500);
+            scheduleReconnect(3500);
           }
         });
       } catch (err) {
+        isConnecting = false;
         brokerIndex++;
-        setTimeout(initClient, 2500);
+        scheduleReconnect(3500);
       }
+    }
+
+    function scheduleReconnect(delayMs) {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(initClient, delayMs);
     }
 
     initClient();
@@ -215,16 +236,31 @@
     const channel = new BroadcastChannel('puti_classroom_poll_' + room);
     channel.onmessage = (e) => {
       if (e.data.type === 'POLL_SYNC') {
-        currentPoll = e.data.poll;
-        render();
+        handlePollSync(e.data.poll);
       } else if (e.data.type === 'POLL_RESET') {
-        selectedOptionIdx = null;
-        successBox.style.display = 'none';
-        render();
+        handlePollReset();
       }
     };
-    // Also trigger initial request via BroadcastChannel
     channel.postMessage({ type: 'REQUEST_POLL_STATE' });
+
+    function handlePollSync(newPoll) {
+      if (!newPoll) return;
+      const isNewQuestion = !currentPoll || (currentPoll.question !== newPoll.question);
+      currentPoll = newPoll;
+
+      // 換題時重置「已投票」訊息與選取樣式
+      if (isNewQuestion) {
+        selectedOptionIdx = null;
+        successBox.style.display = 'none';
+      }
+      render();
+    }
+
+    function handlePollReset() {
+      selectedOptionIdx = null;
+      successBox.style.display = 'none';
+      render();
+    }
 
     function render() {
       if (!currentPoll || !currentPoll.options || currentPoll.options.length === 0) {
@@ -242,7 +278,13 @@
 
       container.querySelectorAll('.vote-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          selectedOptionIdx = parseInt(btn.dataset.idx, 10);
+          const newIdx = parseInt(btn.dataset.idx, 10);
+          
+          // 如果點選相同選項，不做重複灌票
+          if (selectedOptionIdx === newIdx) return;
+
+          const prevIdx = selectedOptionIdx;
+          selectedOptionIdx = newIdx;
           render();
 
           // Haptic feedback
@@ -250,7 +292,9 @@
 
           const voteData = {
             type: 'VOTE_SUBMITTED',
+            voterId: voterId,
             optionIndex: selectedOptionIdx,
+            previousOptionIndex: prevIdx, // 允許修改投票，通知大螢幕扣除原票
             time: Date.now()
           };
 
@@ -267,6 +311,9 @@
           channel.postMessage(voteData);
 
           successBox.style.display = 'block';
+          successBox.innerHTML = prevIdx !== null 
+            ? '<i class="fa-solid fa-arrows-rotate"></i> 投票已成功修改為新選項！'
+            : '<i class="fa-solid fa-circle-check"></i> 投票成功！大螢幕已即時計入您的票數。';
         });
       });
     }

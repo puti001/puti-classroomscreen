@@ -1176,6 +1176,7 @@ const ClassroomWidgets = {
           const cur = questionBank[currentIdx];
           if (cur) {
             cur.votes = cur.options.map(() => 0);
+            cur.voters = {};
             saveBank();
             render();
             if (window.realtimeEngine) {
@@ -1336,17 +1337,40 @@ const ClassroomWidgets = {
           });
         });
 
-        // Realtime Listener for Mobile Students Voting
+        // Realtime Listener for Mobile Students Voting with single-vote per student & vote revision
         if (window.realtimeEngine) {
           window.realtimeEngine.subscribe('poll/vote', (data) => {
             if (data.type === 'VOTE_SUBMITTED') {
               const cur = questionBank[currentIdx];
-              if (cur && cur.votes && cur.votes[data.optionIndex] !== undefined) {
-                cur.votes[data.optionIndex]++;
-                saveBank();
-                window.soundEngine.playPop();
-                render();
+              if (!cur || !cur.votes) return;
+              if (!cur.voters) cur.voters = {};
+
+              const vId = data.voterId;
+              const newIdx = data.optionIndex;
+
+              if (vId) {
+                // If student has already voted this option, ignore duplicate
+                if (cur.voters[vId] === newIdx) return;
+
+                // If student is changing vote from previous option, decrement previous
+                if (cur.voters[vId] !== undefined) {
+                  const oldIdx = cur.voters[vId];
+                  if (cur.votes[oldIdx] > 0) cur.votes[oldIdx]--;
+                } else if (data.previousOptionIndex !== undefined && data.previousOptionIndex !== null) {
+                  const oldIdx = data.previousOptionIndex;
+                  if (cur.votes[oldIdx] > 0) cur.votes[oldIdx]--;
+                }
+
+                // Record new vote
+                cur.voters[vId] = newIdx;
+                cur.votes[newIdx] = (cur.votes[newIdx] || 0) + 1;
+              } else {
+                cur.votes[newIdx] = (cur.votes[newIdx] || 0) + 1;
               }
+
+              saveBank();
+              window.soundEngine.playPop();
+              render();
             }
           });
 
