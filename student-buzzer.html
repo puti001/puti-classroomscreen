@@ -150,11 +150,11 @@
     </div>
 
     <div style="font-size: 0.88rem; font-weight: 800; color: #718096;" id="state-prompt">
-      準備搶答！大螢幕開始後請立即狂按！
+      ⏳ 等待老師按「開始搶答」...
     </div>
 
     <!-- Giant 3D Buzzer -->
-    <div class="big-buzzer-btn" id="big-buzz-btn">
+    <div class="big-buzzer-btn disabled" id="big-buzz-btn">
       <i class="fa-solid fa-bell" style="font-size: 3.2rem; margin-bottom: 8px;"></i>
       <span style="font-size: 1.4rem; font-weight: 900; letter-spacing: 2px;">搶 答</span>
     </div>
@@ -184,72 +184,91 @@
     let canBuzz = false;
     let buzzerState = 'STANDBY'; // 'STANDBY' | 'ACTIVE' | 'LOCKED'
 
-    // 1. MQTT Cloud Realtime Connection
-    const clientId = 'puti_buzzer_' + Math.random().toString(16).substring(2, 8);
-    const client = new Paho.MQTT.Client('broker.emqx.io', 8084, '/mqtt', clientId);
+    // Brokers list with fallback
+    const brokers = [
+      { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
+      { host: 'broker.hivemq.com', port: 8884, path: '/mqtt' }
+    ];
+    let brokerIndex = 0;
+    let client = null;
 
-    client.onConnectionLost = () => {
-      connBadge.className = 'status-badge connecting';
-      connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
-      setTimeout(connectMqtt, 3000);
-    };
+    function initClient() {
+      const broker = brokers[brokerIndex % brokers.length];
+      const clientId = 'puti_buzzer_' + Math.random().toString(16).substring(2, 10);
 
-    client.onMessageArrived = (msg) => {
       try {
-        const payload = JSON.parse(msg.payloadString);
-        if (payload.type === 'BUZZER_START') {
-          buzzerState = 'ACTIVE';
-          canBuzz = true;
-          buzzBtn.classList.remove('disabled');
-          statePrompt.textContent = '🔥 老師已發布搶答！請立即搶按！';
-          statePrompt.style.color = '#E03131';
-          resultBanner.style.display = 'none';
-          if (navigator.vibrate) navigator.vibrate(80);
-        } else if (payload.type === 'BUZZER_RESET' || payload.type === 'BUZZER_STANDBY') {
-          buzzerState = 'STANDBY';
-          canBuzz = false;
-          buzzBtn.classList.add('disabled');
-          statePrompt.textContent = '⏳ 等待老師按「開始搶答」... 請勿偷跑！';
-          statePrompt.style.color = '#718096';
-          resultBanner.style.display = 'none';
-        } else if (payload.type === 'BUZZER_WINNER') {
-          buzzerState = 'LOCKED';
-          canBuzz = false;
-          buzzBtn.classList.add('disabled');
-          const myId = `${seatInput.value ? seatInput.value + '號 ' : ''}${nameInput.value || '匿名同學'}`;
-          if (payload.winner === myId || payload.seat == seatInput.value) {
-            resultBanner.className = 'result-banner win';
-            resultBanner.innerHTML = '🎉 <strong>太強了！你搶得了第一名回答權！</strong>';
-            if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
-          } else {
-            resultBanner.className = 'result-banner lose';
-            resultBanner.innerHTML = `慢了一步！本次由【<strong>${payload.winner}</strong>】搶先回答！`;
-          }
+        if (client) {
+          try { client.disconnect(); } catch(e) {}
         }
-      } catch (e) {
-        console.error(e);
-      }
-    };
+        client = new Paho.MQTT.Client(broker.host, broker.port, broker.path, clientId);
 
-    function connectMqtt() {
-      client.connect({
-        useSSL: true,
-        timeout: 5,
-        onSuccess: () => {
-          connBadge.className = 'status-badge connected';
-          connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
-          // Subscribe to state changes from host
-          client.subscribe(`puti/class/${room}/buzzer/state`);
-        },
-        onFailure: () => {
+        client.onConnectionLost = () => {
           connBadge.className = 'status-badge connecting';
-          connBadge.textContent = '重試連線中...';
-          setTimeout(connectMqtt, 3000);
-        }
-      });
+          connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
+          brokerIndex++;
+          setTimeout(initClient, 2000);
+        };
+
+        client.onMessageArrived = (msg) => {
+          try {
+            const payload = JSON.parse(msg.payloadString);
+            if (payload.type === 'BUZZER_START') {
+              buzzerState = 'ACTIVE';
+              canBuzz = true;
+              buzzBtn.classList.remove('disabled');
+              statePrompt.textContent = '🔥 老師已發布搶答！請立即搶按！';
+              statePrompt.style.color = '#E03131';
+              resultBanner.style.display = 'none';
+              if (navigator.vibrate) navigator.vibrate(80);
+            } else if (payload.type === 'BUZZER_RESET' || payload.type === 'BUZZER_STANDBY') {
+              buzzerState = 'STANDBY';
+              canBuzz = false;
+              buzzBtn.classList.add('disabled');
+              statePrompt.textContent = '⏳ 等待老師按「開始搶答」... 請勿偷跑！';
+              statePrompt.style.color = '#718096';
+              resultBanner.style.display = 'none';
+            } else if (payload.type === 'BUZZER_WINNER') {
+              buzzerState = 'LOCKED';
+              canBuzz = false;
+              buzzBtn.classList.add('disabled');
+              const myId = `${seatInput.value ? seatInput.value + '號 ' : ''}${nameInput.value || '匿名同學'}`;
+              if (payload.winner === myId || payload.seat == seatInput.value) {
+                resultBanner.className = 'result-banner win';
+                resultBanner.innerHTML = '🎉 <strong>太強了！你搶得了第一名回答權！</strong>';
+                if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+              } else {
+                resultBanner.className = 'result-banner lose';
+                resultBanner.innerHTML = `慢了一步！本次由【<strong>${payload.winner}</strong>】搶先回答！`;
+              }
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        };
+
+        client.connect({
+          useSSL: true,
+          timeout: 4,
+          cleanSession: true,
+          onSuccess: () => {
+            connBadge.className = 'status-badge connected';
+            connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
+            client.subscribe(`puti/class/${room}/buzzer/state`);
+          },
+          onFailure: (err) => {
+            connBadge.className = 'status-badge connecting';
+            connBadge.textContent = '切換線路連線中...';
+            brokerIndex++;
+            setTimeout(initClient, 2500);
+          }
+        });
+      } catch (err) {
+        brokerIndex++;
+        setTimeout(initClient, 2500);
+      }
     }
 
-    connectMqtt();
+    initClient();
 
     // 2. BroadcastChannel Fallback
     const channel = new BroadcastChannel('puti_classroom_buzzer_' + room);
@@ -283,14 +302,9 @@
       }
     };
 
-    // Initialize button state as standby disabled
-    buzzBtn.classList.add('disabled');
-    statePrompt.textContent = '⏳ 等待老師按「開始搶答」...';
-
     // Buzz Click Action
     buzzBtn.addEventListener('click', () => {
       if (!canBuzz || buzzerState !== 'ACTIVE') {
-        // Anti-cheat alert
         if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
         statePrompt.textContent = '⚠️ 老師尚未發布「開始搶答」，請勿偷跑！';
         statePrompt.style.color = '#E03131';
@@ -312,11 +326,13 @@
       };
 
       // Send via MQTT
-      try {
-        const msg = new Paho.MQTT.Message(JSON.stringify(buzzData));
-        msg.destinationName = `puti/class/${room}/buzzer/buzz`;
-        client.send(msg);
-      } catch(e) {}
+      if (client && client.isConnected()) {
+        try {
+          const msg = new Paho.MQTT.Message(JSON.stringify(buzzData));
+          msg.destinationName = `puti/class/${room}/buzzer/buzz`;
+          client.send(msg);
+        } catch(e) {}
+      }
 
       // Also BroadcastChannel
       channel.postMessage(buzzData);

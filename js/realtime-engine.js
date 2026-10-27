@@ -10,6 +10,15 @@ class ClassroomRealtimeEngine {
     this.client = null;
     this.connected = false;
     this.listeners = {};
+    this.pendingSubscriptions = new Set();
+    this.currentBrokerIndex = 0;
+
+    // High availability public TLS MQTT brokers list
+    this.brokers = [
+      { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
+      { host: 'broker.hivemq.com', port: 8884, path: '/mqtt' }
+    ];
+
     this.broadcastChannelPoll = new BroadcastChannel('puti_classroom_poll_' + this.room);
     this.broadcastChannelBuzzer = new BroadcastChannel('puti_classroom_buzzer_' + this.room);
 
@@ -29,58 +38,79 @@ class ClassroomRealtimeEngine {
 
   initMqtt() {
     if (typeof Paho === 'undefined') {
-      console.warn('Paho MQTT not loaded, relying on BroadcastChannel fallback.');
+      console.warn('[RealtimeEngine] Paho MQTT not loaded, relying on BroadcastChannel fallback.');
       return;
     }
 
+    const broker = this.brokers[this.currentBrokerIndex % this.brokers.length];
     const clientId = 'puti_host_' + Math.random().toString(16).substring(2, 10);
-    // Use EMQX public high-availability TLS broker
-    this.client = new Paho.MQTT.Client('broker.emqx.io', 8084, '/mqtt', clientId);
-
-    this.client.onConnectionLost = (responseObject) => {
-      this.connected = false;
-      console.warn('Realtime connection lost:', responseObject.errorMessage);
-      setTimeout(() => this.initMqtt(), 3000);
-    };
-
-    this.client.onMessageArrived = (message) => {
-      try {
-        const topic = message.destinationName;
-        const payload = JSON.parse(message.payloadString);
-        this.dispatch(topic, payload);
-      } catch (err) {
-        console.error('MQTT parse error:', err);
-      }
-    };
-
-    const options = {
-      useSSL: true,
-      timeout: 5,
-      keepAliveInterval: 30,
-      cleanSession: true,
-      onSuccess: () => {
-        this.connected = true;
-        console.log(`[RealtimeEngine] Connected to Cloud MQTT Broker. Room: ${this.room}`);
-        // Subscribe to classroom channels
-        this.client.subscribe(`puti/class/${this.room}/poll/vote`);
-        this.client.subscribe(`puti/class/${this.room}/buzzer/buzz`);
-      },
-      onFailure: (err) => {
-        console.warn('[RealtimeEngine] MQTT connection failed, retrying in 4s...', err);
-        setTimeout(() => this.initMqtt(), 4000);
-      }
-    };
 
     try {
+      if (this.client) {
+        try { this.client.disconnect(); } catch (e) {}
+      }
+
+      this.client = new Paho.MQTT.Client(broker.host, broker.port, broker.path, clientId);
+
+      this.client.onConnectionLost = (responseObject) => {
+        this.connected = false;
+        console.warn(`[RealtimeEngine] Connection lost from ${broker.host}:`, responseObject.errorMessage);
+        // Switch to next broker on disconnect
+        this.currentBrokerIndex++;
+        setTimeout(() => this.initMqtt(), 2500);
+      };
+
+      this.client.onMessageArrived = (message) => {
+        try {
+          const topic = message.destinationName;
+          const payload = JSON.parse(message.payloadString);
+          this.dispatch(topic, payload);
+        } catch (err) {
+          console.error('[RealtimeEngine] MQTT parse error:', err);
+        }
+      };
+
+      const options = {
+        useSSL: true,
+        timeout: 5,
+        keepAliveInterval: 30,
+        cleanSession: true,
+        onSuccess: () => {
+          this.connected = true;
+          console.log(`[RealtimeEngine] Connected to MQTT Broker (${broker.host}). Room: ${this.room}`);
+
+          // Default smartboard subscriptions
+          this.client.subscribe(`puti/class/${this.room}/poll/vote`);
+          this.client.subscribe(`puti/class/${this.room}/poll/req`);
+          this.client.subscribe(`puti/class/${this.room}/buzzer/buzz`);
+
+          // Resubscribe any registered widget listeners
+          this.pendingSubscriptions.forEach(topicSuffix => {
+            this.client.subscribe(`puti/class/${this.room}/${topicSuffix}`);
+          });
+        },
+        onFailure: (err) => {
+          this.connected = false;
+          console.warn(`[RealtimeEngine] Connection failed to ${broker.host}, trying fallback broker...`, err);
+          this.currentBrokerIndex++;
+          setTimeout(() => this.initMqtt(), 3000);
+        }
+      };
+
       this.client.connect(options);
     } catch (e) {
-      console.warn('MQTT connect error:', e);
+      console.warn('[RealtimeEngine] MQTT init error:', e);
+      this.currentBrokerIndex++;
+      setTimeout(() => this.initMqtt(), 3000);
     }
   }
 
   initBroadcastFallback() {
     this.broadcastChannelPoll.onmessage = (e) => {
       this.dispatch(`puti/class/${this.room}/poll/vote`, e.data);
+      if (e.data.type === 'REQUEST_POLL_STATE') {
+        this.dispatch(`puti/class/${this.room}/poll/req`, e.data);
+      }
     };
     this.broadcastChannelBuzzer.onmessage = (e) => {
       this.dispatch(`puti/class/${this.room}/buzzer/buzz`, e.data);
@@ -93,6 +123,14 @@ class ClassroomRealtimeEngine {
       this.listeners[fullTopic] = [];
     }
     this.listeners[fullTopic].push(callback);
+    this.pendingSubscriptions.add(topicSuffix);
+
+    // If client is already connected, subscribe immediately to broker
+    if (this.client && this.connected) {
+      try {
+        this.client.subscribe(fullTopic);
+      } catch (e) {}
+    }
   }
 
   dispatch(topic, data) {
@@ -103,7 +141,7 @@ class ClassroomRealtimeEngine {
     }
   }
 
-  publish(topicSuffix, data) {
+  publish(topicSuffix, data, retained = false) {
     const fullTopic = `puti/class/${this.room}/${topicSuffix}`;
     const payloadStr = JSON.stringify(data);
 
@@ -112,6 +150,9 @@ class ClassroomRealtimeEngine {
       try {
         const message = new Paho.MQTT.Message(payloadStr);
         message.destinationName = fullTopic;
+        if (retained) {
+          message.retained = true;
+        }
         this.client.send(message);
       } catch (err) {
         console.warn('MQTT publish failed:', err);

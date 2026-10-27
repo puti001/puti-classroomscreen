@@ -1040,7 +1040,7 @@ const ClassroomWidgets = {
           const pollData = { question: cur.question, options: cur.options };
           localStorage.setItem('puti_active_poll', JSON.stringify(pollData));
           if (window.realtimeEngine) {
-            window.realtimeEngine.publish('poll/state', { type: 'POLL_SYNC', poll: pollData });
+            window.realtimeEngine.publish('poll/state', { type: 'POLL_SYNC', poll: pollData }, true);
           }
         };
 

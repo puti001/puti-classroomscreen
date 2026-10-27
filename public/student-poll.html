@@ -117,7 +117,9 @@
     <h2 id="poll-title">正在載入大螢幕題目...</h2>
 
     <div class="options-grid" id="options-container">
-      <div style="color: #A0AEC0; padding: 30px 0; font-size: 0.95rem;">請稍候，題目將自動出現在手機上...</div>
+      <div style="color: #A0AEC0; padding: 30px 0; font-size: 0.95rem;">
+        <i class="fa-solid fa-spinner fa-spin"></i> 請稍候，題目將自動出現在手機上...
+      </div>
     </div>
 
     <div class="success-box" id="success-box">
@@ -138,57 +140,78 @@
     let currentPoll = null;
     let selectedOptionIdx = null;
 
-    // 1. MQTT Cloud Realtime Connection
-    const clientId = 'puti_voter_' + Math.random().toString(16).substring(2, 8);
-    const client = new Paho.MQTT.Client('broker.emqx.io', 8084, '/mqtt', clientId);
+    // Brokers list with fallback
+    const brokers = [
+      { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
+      { host: 'broker.hivemq.com', port: 8884, path: '/mqtt' }
+    ];
+    let brokerIndex = 0;
+    let client = null;
 
-    client.onConnectionLost = () => {
-      connBadge.className = 'status-badge connecting';
-      connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
-      setTimeout(connectMqtt, 3000);
-    };
-
-    client.onMessageArrived = (msg) => {
+    function initClient() {
+      const broker = brokers[brokerIndex % brokers.length];
+      const clientId = 'puti_voter_' + Math.random().toString(16).substring(2, 10);
+      
       try {
-        const payload = JSON.parse(msg.payloadString);
-        if (payload.type === 'POLL_SYNC') {
-          currentPoll = payload.poll;
-          render();
-        } else if (payload.type === 'POLL_RESET') {
-          selectedOptionIdx = null;
-          successBox.style.display = 'none';
-          render();
+        if (client) {
+          try { client.disconnect(); } catch(e) {}
         }
-      } catch (e) {
-        console.error(e);
-      }
-    };
+        client = new Paho.MQTT.Client(broker.host, broker.port, broker.path, clientId);
 
-    function connectMqtt() {
-      client.connect({
-        useSSL: true,
-        timeout: 5,
-        onSuccess: () => {
-          connBadge.className = 'status-badge connected';
-          connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
-          // Subscribe to poll state from host
-          client.subscribe(`puti/class/${room}/poll/state`);
-          // Request current state from host
-          const req = new Paho.MQTT.Message(JSON.stringify({ type: 'REQUEST_POLL_STATE' }));
-          req.destinationName = `puti/class/${room}/poll/req`;
-          client.send(req);
-        },
-        onFailure: () => {
+        client.onConnectionLost = (responseObject) => {
           connBadge.className = 'status-badge connecting';
-          connBadge.textContent = '重試連線中...';
-          setTimeout(connectMqtt, 3000);
-        }
-      });
+          connBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 重新連線中...';
+          brokerIndex++;
+          setTimeout(initClient, 2000);
+        };
+
+        client.onMessageArrived = (msg) => {
+          try {
+            const payload = JSON.parse(msg.payloadString);
+            if (payload.type === 'POLL_SYNC') {
+              currentPoll = payload.poll;
+              render();
+            } else if (payload.type === 'POLL_RESET') {
+              selectedOptionIdx = null;
+              successBox.style.display = 'none';
+              render();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        };
+
+        client.connect({
+          useSSL: true,
+          timeout: 4,
+          cleanSession: true,
+          onSuccess: () => {
+            connBadge.className = 'status-badge connected';
+            connBadge.innerHTML = '<i class="fa-solid fa-signal"></i> 已連線大螢幕';
+            // Subscribe to poll state from host
+            client.subscribe(`puti/class/${room}/poll/state`);
+            
+            // Request current state from host
+            const req = new Paho.MQTT.Message(JSON.stringify({ type: 'REQUEST_POLL_STATE' }));
+            req.destinationName = `puti/class/${room}/poll/req`;
+            client.send(req);
+          },
+          onFailure: (err) => {
+            connBadge.className = 'status-badge connecting';
+            connBadge.textContent = '切換線路連線中...';
+            brokerIndex++;
+            setTimeout(initClient, 2500);
+          }
+        });
+      } catch (err) {
+        brokerIndex++;
+        setTimeout(initClient, 2500);
+      }
     }
 
-    connectMqtt();
+    initClient();
 
-    // 2. BroadcastChannel Fallback for same-device preview
+    // BroadcastChannel Fallback for same-device preview
     const channel = new BroadcastChannel('puti_classroom_poll_' + room);
     channel.onmessage = (e) => {
       if (e.data.type === 'POLL_SYNC') {
@@ -200,10 +223,12 @@
         render();
       }
     };
+    // Also trigger initial request via BroadcastChannel
+    channel.postMessage({ type: 'REQUEST_POLL_STATE' });
 
     function render() {
       if (!currentPoll || !currentPoll.options || currentPoll.options.length === 0) {
-        titleEl.textContent = '老師尚未發佈投票題目';
+        titleEl.textContent = '題目準備中...';
         container.innerHTML = '<div style="color: #A0AEC0; padding: 30px 0; font-size: 0.95rem;">大螢幕題目更新時，將自動在此呈現...</div>';
         return;
       }
@@ -230,11 +255,13 @@
           };
 
           // Send via MQTT
-          try {
-            const msg = new Paho.MQTT.Message(JSON.stringify(voteData));
-            msg.destinationName = `puti/class/${room}/poll/vote`;
-            client.send(msg);
-          } catch(e) {}
+          if (client && client.isConnected()) {
+            try {
+              const msg = new Paho.MQTT.Message(JSON.stringify(voteData));
+              msg.destinationName = `puti/class/${room}/poll/vote`;
+              client.send(msg);
+            } catch(e) {}
+          }
 
           // Also via BroadcastChannel
           channel.postMessage(voteData);
