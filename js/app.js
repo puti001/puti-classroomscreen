@@ -111,14 +111,14 @@ document.addEventListener('DOMContentLoaded', () => {
       thumb: './assets/wallpapers/bg_ocean_thumb.jpg'
     },
     {
-      id: 'forest',
-      name: '晨光森林',
+      id: 'cute-dog',
+      name: '呆萌狗仔',
       url: './assets/wallpapers/bg_forest.jpg',
       thumb: './assets/wallpapers/bg_forest_thumb.jpg'
     },
     {
-      id: 'cozy-room',
-      name: '溫馨教室',
+      id: 'cute-cat',
+      name: '可愛小貓',
       url: './assets/wallpapers/bg_cozy.jpg',
       thumb: './assets/wallpapers/bg_cozy_thumb.jpg'
     }
