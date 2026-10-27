@@ -1772,63 +1772,118 @@ const ClassroomWidgets = {
   },
 
   spawnAgenda(wm) {
-    const defaultItems = ['1. 暖身複習與今日目標', '2. 教師核心觀念講解', '3. 小組任務合作探究', '4. 各組代表上台分享', '5. 總結評量與聯絡簿'];
+    const presets = {
+      default: ['1. 課前準備與點名', '2. 上節複習與檢討', '3. 本節核心概念教學', '4. 小組討論與實作', '5. 成果發表與總結'],
+      fourLearn: [
+        '1. 學生自學 (課前預習／閱讀講義／任務自探)',
+        '2. 組內共學 (小組討論／對答案／彼此解題澄清)',
+        '3. 組間互學 (跨組分享／提問質疑／發表辯證)',
+        '4. 教師導學 (重點提煉／迷思釐清／引導統整總結)'
+      ],
+      examDay: [
+        '1. 桌椅排正、抽屜書包清空',
+        '2. 桌面僅留必備文具、墊板與手錶',
+        '3. 考卷發放、核對座號與頁數',
+        '4. 靜心作答、留意時間掌握節奏',
+        '5. 仔細檢查每一題計算與劃卡、聽鐘響統一交卷'
+      ]
+    };
+
+    let currentItems = [...presets.default];
     let fontSize = 0.9;
+
+    const renderItemsHtml = (items) => {
+      return items.map(item => `
+        <div class="agenda-item">
+          <input type="checkbox" class="agenda-checkbox">
+          <span class="agenda-text" contenteditable="true" style="font-size: ${fontSize}rem;">${item}</span>
+        </div>
+      `).join('');
+    };
+
     const content = `
-      <div class="agenda-container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 800; font-size: 0.88rem; color: #52B788;">課堂任務檢核表</span>
+      <div class="agenda-container" style="display: flex; flex-direction: column; height: 100%; gap: 6px;">
+        <!-- Top Toolbar: Preset Chips + Font Scaling -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+          <div style="display: flex; gap: 4px; overflow-x: auto;">
+            <button class="preset-chip active" id="ag-pre-default" title="一般課堂標準流程">預設</button>
+            <button class="preset-chip" id="ag-pre-four" style="color: #2B8A3E; font-weight: 800;" title="自主學習四學模式（自學、共學、互學、導學）">📖 四學</button>
+            <button class="preset-chip" id="ag-pre-exam" style="color: #E03131; font-weight: 800;" title="定期評量考場紀律流程">📝 段考日</button>
+          </div>
           <div class="font-scale-controls">
-            <button class="font-scale-btn" id="ag-font-minus">A-</button>
-            <button class="font-scale-btn" id="ag-font-reset">A</button>
-            <button class="font-scale-btn" id="ag-font-plus">A+</button>
+            <button class="font-scale-btn" id="ag-font-minus" title="縮小字級">A-</button>
+            <button class="font-scale-btn" id="ag-font-reset" title="預設字級">A</button>
+            <button class="font-scale-btn" id="ag-font-plus" title="放大字級">A+</button>
           </div>
         </div>
-        <div class="agenda-list" id="agenda-items-box">
-          ${defaultItems.map(item => `
-            <div class="agenda-item">
-              <input type="checkbox" class="agenda-checkbox">
-              <span class="agenda-text" contenteditable="true" style="font-size: ${fontSize}rem;">${item}</span>
-            </div>
-          `).join('')}
+
+        <div class="agenda-list" id="agenda-items-box" style="flex: 1; overflow-y: auto;">
+          ${renderItemsHtml(currentItems)}
         </div>
+
         <button class="action-btn-secondary" id="agenda-add-btn" style="height: 34px; font-size: 0.82rem;">
-          <i class="fa-solid fa-plus"></i> 新增步驟
+          <i class="fa-solid fa-plus"></i> 新增流程
         </button>
       </div>
     `;
+
     wm.createWindow({
-      title: '作息流程表', icon: 'fa-list-check', iconColor: '#52B788', width: 340, height: 330, type: 'agenda', contentHtml: content,
+      title: '流程作息表', icon: 'fa-list-check', iconColor: '#52B788', width: 390, height: 360, type: 'agenda', contentHtml: content,
       onInit: (el) => {
-        const box = el.querySelector('#agenda-items-box'), addBtn = el.querySelector('#agenda-add-btn');
+        const box = el.querySelector('#agenda-items-box');
+        const addBtn = el.querySelector('#agenda-add-btn');
+
+        const applyPreset = (key, btnEl) => {
+          el.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+          btnEl.classList.add('active');
+          currentItems = [...presets[key]];
+          box.innerHTML = renderItemsHtml(currentItems);
+          window.soundEngine.playPop();
+        };
+
+        el.querySelector('#ag-pre-default').addEventListener('click', (e) => applyPreset('default', e.currentTarget));
+        el.querySelector('#ag-pre-four').addEventListener('click', (e) => applyPreset('fourLearn', e.currentTarget));
+        el.querySelector('#ag-pre-exam').addEventListener('click', (e) => applyPreset('examDay', e.currentTarget));
+
         box.addEventListener('change', (e) => {
           if (e.target.classList.contains('agenda-checkbox')) {
             const item = e.target.closest('.agenda-item');
-            if (e.target.checked) { item.classList.add('done'); window.soundEngine.playTick(); } else item.classList.remove('done');
+            if (e.target.checked) {
+              item.classList.add('done');
+              window.soundEngine.playTick();
+            } else {
+              item.classList.remove('done');
+            }
           }
         });
+
         addBtn.addEventListener('click', () => {
           const count = box.querySelectorAll('.agenda-item').length + 1;
-          const div = document.createElement('div'); div.className = 'agenda-item';
-          div.innerHTML = `<input type="checkbox" class="agenda-checkbox"><span class="agenda-text" contenteditable="true" style="font-size: ${fontSize}rem;">${count}. 新增課堂任務步驟</span>`;
+          const div = document.createElement('div');
+          div.className = 'agenda-item';
+          div.innerHTML = `<input type="checkbox" class="agenda-checkbox"><span class="agenda-text" contenteditable="true" style="font-size: ${fontSize}rem;">${count}. 請輸入流程事項</span>`;
           box.appendChild(div);
+          window.soundEngine.playPop();
         });
+
         el.querySelector('#ag-font-plus').addEventListener('click', () => {
           fontSize = Math.min(1.8, fontSize + 0.15);
           box.querySelectorAll('.agenda-text').forEach(t => t.style.fontSize = fontSize + 'rem');
+          window.soundEngine.playTick();
         });
         el.querySelector('#ag-font-minus').addEventListener('click', () => {
           fontSize = Math.max(0.75, fontSize - 0.15);
           box.querySelectorAll('.agenda-text').forEach(t => t.style.fontSize = fontSize + 'rem');
+          window.soundEngine.playTick();
         });
         el.querySelector('#ag-font-reset').addEventListener('click', () => {
           fontSize = 0.9;
           box.querySelectorAll('.agenda-text').forEach(t => t.style.fontSize = fontSize + 'rem');
+          window.soundEngine.playPop();
         });
       }
     });
   },
-
   spawnTrafficLight(wm) {
     const content = `
       <div class="traffic-light-container" id="tl-box">
@@ -1867,36 +1922,68 @@ const ClassroomWidgets = {
   },
 
   spawnWorkSymbols(wm) {
+    let wsScale = 1.0;
     const symbols = [
       { id: 'silent', icon: '🤫', name: '保持安靜', desc: '獨立自主專注思考' },
       { id: 'whisper', icon: '👂', name: '輕聲細語', desc: '相鄰同學悄悄交換意見' },
-      { id: 'group', icon: '🤝', name: '小組合作', desc: '組內熱烈協作討論' },
-      { id: 'class', icon: '📢', name: '全班發言', desc: '面向大家發表觀點' }
+      { id: 'group', icon: '🤝', name: '小組合作', desc: '同組夥伴熱烈討論交流' },
+      { id: 'class', icon: '📢', name: '全班發表', desc: '安靜聆聽他人發言分享' }
     ];
     const content = `
-      <div class="work-symbols-container">
-        <div class="symbol-grid">
+      <div class="work-symbols-container" style="display: flex; flex-direction: column; height: 100%; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px;">
+          <span style="font-size: 0.78rem; font-weight: 800; color: #718096;">點擊切換工作模式</span>
+          <div class="font-scale-controls">
+            <button class="font-scale-btn" id="ws-font-minus" title="縮小符號與文字">A-</button>
+            <button class="font-scale-btn" id="ws-font-reset" title="預設大小">A</button>
+            <button class="font-scale-btn" id="ws-font-plus" title="放大符號與文字">A+</button>
+          </div>
+        </div>
+        <div class="symbol-grid" id="ws-symbol-grid" style="flex: 1;">
           ${symbols.map((s, idx) => `
             <div class="symbol-card ${idx === 0 ? 'active' : ''}" data-id="${s.id}">
-              <div class="symbol-icon-wrapper">${s.icon}</div>
-              <div class="symbol-name">${s.name}</div>
-              <div class="symbol-desc">${s.desc}</div>
+              <div class="symbol-icon-wrapper" style="font-size: 2.2rem; transition: font-size 0.15s ease;">${s.icon}</div>
+              <div class="symbol-name" style="font-size: 0.95rem; font-weight: 900; transition: font-size 0.15s ease;">${s.name}</div>
+              <div class="symbol-desc" style="font-size: 0.75rem; transition: font-size 0.15s ease;">${s.desc}</div>
             </div>
           `).join('')}
         </div>
       </div>
     `;
     wm.createWindow({
-      title: '課堂工作符號', icon: 'fa-icons', iconColor: '#9A8CFF', width: 330, height: 310, type: 'work-symbols', contentHtml: content,
+      title: '課堂工作符號', icon: 'fa-icons', iconColor: '#9A8CFF', width: 340, height: 330, type: 'work-symbols', contentHtml: content,
       onInit: (el) => {
+        const grid = el.querySelector('#ws-symbol-grid');
+        const applyScale = () => {
+          grid.querySelectorAll('.symbol-icon-wrapper').forEach(i => i.style.fontSize = (2.2 * wsScale) + 'rem');
+          grid.querySelectorAll('.symbol-name').forEach(n => n.style.fontSize = (0.95 * wsScale) + 'rem');
+          grid.querySelectorAll('.symbol-desc').forEach(d => d.style.fontSize = (0.75 * wsScale) + 'rem');
+        };
+
+        el.querySelector('#ws-font-plus').addEventListener('click', () => {
+          wsScale = Math.min(1.8, wsScale + 0.15);
+          applyScale();
+          window.soundEngine.playTick();
+        });
+        el.querySelector('#ws-font-minus').addEventListener('click', () => {
+          wsScale = Math.max(0.8, wsScale - 0.15);
+          applyScale();
+          window.soundEngine.playTick();
+        });
+        el.querySelector('#ws-font-reset').addEventListener('click', () => {
+          wsScale = 1.0;
+          applyScale();
+          window.soundEngine.playPop();
+        });
+
         el.querySelectorAll('.symbol-card').forEach(card => card.addEventListener('click', () => {
           el.querySelectorAll('.symbol-card').forEach(c => c.classList.remove('active'));
-          card.classList.add('active'); window.soundEngine.playTick();
+          card.classList.add('active');
+          window.soundEngine.playTick();
         }));
       }
     });
   },
-
   spawnSoundMeter(wm) {
     let audioStream = null, audioContext = null, analyser = null, animFrame = null, threshold = 65, isWarning = false;
     const content = `
@@ -2063,32 +2150,123 @@ const ClassroomWidgets = {
 
   spawnGroupMaker(wm) {
     let students = JSON.parse(localStorage.getItem('puti_student_roster') || 'null') || Array.from({ length: 30 }, (_, i) => `${i + 1} 號`);
+    let currentGroups = [];
 
     const content = `
-      <div class="groups-container">
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <span style="font-size: 0.85rem; font-weight: 700;">分成組數：</span>
-          <select id="grp-count-select" style="padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); outline: none; font-weight: 700;">
+      <div class="groups-container" style="display: flex; flex-direction: column; height: 100%; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #F8F9FA; padding: 6px 10px; border-radius: 10px; border: 1px solid #E9ECEF;">
+          <span style="font-size: 0.82rem; font-weight: 800; color: #495057;">分組組數：</span>
+          <select id="grp-count-select" style="padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-subtle); outline: none; font-weight: 800; font-size: 0.85rem;">
             <option value="2">2 組</option><option value="3">3 組</option><option value="4" selected>4 組</option><option value="5">5 組</option><option value="6">6 組</option><option value="8">8 組</option>
           </select>
-          <button class="action-btn-secondary" id="grp-config-btn" style="height: 36px; padding: 0 12px; font-size: 0.82rem;" title="自訂全班名單（一行一個）">
+          <button class="action-btn-secondary" id="grp-config-btn" style="height: 32px; padding: 0 10px; font-size: 0.8rem;" title="編輯班級名單">
             <i class="fa-solid fa-users-line"></i> 名單 (<span id="grp-roster-count">${students.length}</span>人)
           </button>
-          <button class="action-btn-main" id="grp-make-btn" style="height: 36px; padding: 0 16px; font-size: 0.88rem;"><i class="fa-solid fa-shuffle"></i> 隨機分組</button>
+          <button class="action-btn-main" id="grp-make-btn" style="height: 32px; padding: 0 14px; font-size: 0.84rem; background: linear-gradient(135deg, #2B8A3E, #20C997);">
+            <i class="fa-solid fa-shuffle"></i> 隨機分組
+          </button>
+          <span style="font-size: 0.72rem; color: #718096; margin-left: auto;">💡 支援滑鼠/觸控直接<b>拖曳學生姓名</b>跨組自由互換</span>
         </div>
-        <div class="groups-result-grid" id="grp-result-area"><div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 0.9rem;">點擊「隨機分組」將全班同學平均分配至各組</div></div>
+
+        <div class="groups-result-grid" id="grp-result-area" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; padding: 4px;">
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 0.92rem;">
+            點擊「隨機分組」立即產生分組，產生後可直接用滑鼠拖拉成員調整！
+          </div>
+        </div>
       </div>
     `;
+
     wm.createWindow({
-      title: '班級分組神器', icon: 'fa-people-group', iconColor: '#52B788', width: 500, height: 380, type: 'groups', contentHtml: content,
+      title: '隨機與拖拉分組', icon: 'fa-people-group', iconColor: '#52B788', width: 620, height: 440, type: 'groups', contentHtml: content,
       onInit: (el) => {
-        const makeBtn = el.querySelector('#grp-make-btn'), select = el.querySelector('#grp-count-select'), resultArea = el.querySelector('#grp-result-area'), configBtn = el.querySelector('#grp-config-btn'), countEl = el.querySelector('#grp-roster-count');
+        const makeBtn = el.querySelector('#grp-make-btn');
+        const select = el.querySelector('#grp-count-select');
+        const resultArea = el.querySelector('#grp-result-area');
+        const configBtn = el.querySelector('#grp-config-btn');
+        const countEl = el.querySelector('#grp-roster-count');
+
+        let draggedItem = null;
+
+        const renderGroups = () => {
+          if (!currentGroups || currentGroups.length === 0) return;
+          resultArea.innerHTML = currentGroups.map((g, gIdx) => `
+            <div class="group-card" data-gidx="${gIdx}" style="background: #FFF; border: 2px dashed #CED4DA; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 140px; transition: all 0.15s ease;">
+              <div class="group-card-header" style="font-weight: 900; font-size: 0.9rem; color: #2B6CB0; display: flex; justify-content: space-between; border-bottom: 1.5px solid #EDF2F7; padding-bottom: 4px;">
+                <span>第 ${gIdx + 1} 組</span>
+                <span style="font-size: 0.75rem; color: #718096; font-family: var(--font-num);">(${g.length} 人)</span>
+              </div>
+              <div class="group-drop-zone" data-gidx="${gIdx}" style="display: flex; flex-wrap: wrap; gap: 5px; flex: 1; align-content: flex-start; padding: 4px 0;">
+                ${g.map((name, mIdx) => `
+                  <div class="draggable-student-tag" draggable="true" data-gidx="${gIdx}" data-midx="${mIdx}" data-name="${name}" style="background: #EBF8FF; border: 1.5px solid #BEE3F8; color: #2B6CB0; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; cursor: grab; user-select: none; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-grip-lines" style="font-size: 0.65rem; color: #90CDF4;"></i>
+                    <span>${name}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
+
+          // Bind Drag and Drop Events
+          const tags = resultArea.querySelectorAll('.draggable-student-tag');
+          const cards = resultArea.querySelectorAll('.group-card');
+
+          tags.forEach(tag => {
+            tag.addEventListener('dragstart', (e) => {
+              draggedItem = {
+                fromGroup: parseInt(tag.dataset.gidx, 10),
+                fromMember: parseInt(tag.dataset.midx, 10),
+                name: tag.dataset.name
+              };
+              tag.style.opacity = '0.4';
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', tag.dataset.name);
+            });
+
+            tag.addEventListener('dragend', () => {
+              tag.style.opacity = '1';
+              cards.forEach(c => c.style.borderColor = '#CED4DA');
+            });
+          });
+
+          cards.forEach(card => {
+            card.addEventListener('dragover', (e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              card.style.borderColor = '#3182CE';
+              card.style.background = '#F7FAFC';
+            });
+
+            card.addEventListener('dragleave', () => {
+              card.style.borderColor = '#CED4DA';
+              card.style.background = '#FFF';
+            });
+
+            card.addEventListener('drop', (e) => {
+              e.preventDefault();
+              card.style.borderColor = '#CED4DA';
+              card.style.background = '#FFF';
+
+              if (!draggedItem) return;
+              const targetGroupIdx = parseInt(card.dataset.gidx, 10);
+              const { fromGroup, fromMember, name } = draggedItem;
+
+              if (fromGroup === targetGroupIdx) return; // Dropped in same group
+
+              // Move member
+              currentGroups[fromGroup].splice(fromMember, 1);
+              currentGroups[targetGroupIdx].push(name);
+
+              draggedItem = null;
+              window.soundEngine.playPop();
+              renderGroups();
+            });
+          });
+        };
 
         const onGroupRosterUpdated = (e) => {
           if (e.detail && Array.isArray(e.detail)) {
             students = [...e.detail];
             countEl.textContent = students.length;
-            resultArea.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 0.9rem;">共用名單已同步為 ${students.length} 人，請點擊「隨機分組」！</div>`;
           }
         };
         window.addEventListener('rosterUpdated', onGroupRosterUpdated);
@@ -2098,7 +2276,6 @@ const ClassroomWidgets = {
             window.openRosterEditor(students, (newList) => {
               students = newList;
               countEl.textContent = students.length;
-              resultArea.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 0.9rem;">全班名單已更新為 ${students.length} 人，請點擊「隨機分組」！</div>`;
             });
           }
         });
@@ -2106,17 +2283,20 @@ const ClassroomWidgets = {
         makeBtn.addEventListener('click', () => {
           const k = parseInt(select.value, 10);
           const shuffled = [...students];
-          for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
-          const groups = Array.from({ length: k }, () => []);
-          shuffled.forEach((std, idx) => groups[idx % k].push(std));
-          resultArea.innerHTML = groups.map((g, idx) => `<div class="group-card"><div class="group-card-header">第 ${idx + 1} 組 (${g.length}人)</div><div class="group-member-list">${g.join('、 ')}</div></div>`).join('');
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          currentGroups = Array.from({ length: k }, () => []);
+          shuffled.forEach((std, idx) => currentGroups[idx % k].push(std));
+
+          renderGroups();
           window.soundEngine.playFanfare();
           if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 60 });
         });
       }
     });
   },
-
   spawnRPS(wm) {
     const hands = ['✊', '✌', '✋'], names = ['石頭', '剪刀', '布'];
     const content = `
@@ -2269,51 +2449,111 @@ const ClassroomWidgets = {
 
   spawnStickers(wm) {
     const stickers = ['💯', '🌟', '🎉', '🔥', '👑', '👍', '❤️', '👏', '🌈', '🏆', '🎯', '🚀', '⭐', '🦉', '🎨', '💡'];
+    const soundEffects = [
+      { id: 'clap', name: '熱烈鼓掌', icon: '👏', color: '#FF7B00', fn: () => window.soundEngine.playClap() },
+      { id: 'cheer', name: '歡呼尖叫', icon: '🥳', color: '#E03131', fn: () => window.soundEngine.playCheer() },
+      { id: 'fanfare', name: '勝利號角', icon: '🎺', color: '#2F9E44', fn: () => window.soundEngine.playFanfare() },
+      { id: 'correct', name: '答對啦！', icon: '🔔', color: '#1971C2', fn: () => window.soundEngine.playCorrect() },
+      { id: 'wrong', name: '再想想～', icon: '🤔', color: '#868E96', fn: () => window.soundEngine.playWrong() },
+      { id: 'fireworks', name: '盛大煙火', icon: '🎆', color: '#9C36B5', fn: () => window.soundEngine.playFireworks() }
+    ];
+
     const content = `
       <div style="display: flex; flex-direction: column; height: 100%; gap: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.8rem; color: var(--text-muted);">點擊貼紙蓋印，可拖曳放置：</span>
-          <button type="button" class="action-btn-secondary" id="stickers-clear-all-btn" style="height: 24px; font-size: 0.72rem; padding: 0 8px; color: #E03131; border-color: #FFA8A8;" title="清除桌面上所有已蓋出的貼紕"><i class="fa-solid fa-trash-can"></i> 清除全部貼紕</button>
+        <!-- Section 1: Classroom Interactive Sound Effects -->
+        <div style="background: #FFF9DB; border: 1.5px solid #FFE066; border-radius: 12px; padding: 8px 10px;">
+          <div style="font-size: 0.78rem; font-weight: 900; color: #D9480F; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;">
+            <i class="fa-solid fa-volume-high"></i> 課堂即時互動音效（點擊即時發聲）：
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            ${soundEffects.map(s => `
+              <button type="button" class="sfx-btn" data-id="${s.id}" style="background: #FFF; border: 1.5px solid ${s.color}44; border-radius: 8px; padding: 6px 4px; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 800; font-size: 0.8rem; color: #2D3748; cursor: pointer; transition: all 0.12s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                <span style="font-size: 1.1rem;">${s.icon}</span>
+                <span>${s.name}</span>
+              </button>
+            `).join('')}
+          </div>
         </div>
-        <div class="stickers-grid">
+
+        <!-- Section 2: Electronic Stickers -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted);">榮譽貼紙（點擊印在黑板，可自由拖曳）：</span>
+          <button type="button" class="action-btn-secondary" id="stickers-clear-all-btn" style="height: 24px; font-size: 0.72rem; padding: 0 8px; color: #E03131; border-color: #FFA8A8;" title="清除桌面上所有已蓋出的貼紙">
+            <i class="fa-solid fa-trash-can"></i> 清除全部貼紙
+          </button>
+        </div>
+        <div class="stickers-grid" style="flex: 1; overflow-y: auto;">
           ${stickers.map(s => `<div class="sticker-badge" data-emoji="${s}">${s}</div>`).join('')}
         </div>
       </div>
     `;
+
     wm.createWindow({
-      title: '獎勵電子貼紙', icon: 'fa-award', iconColor: '#FFD166', width: 320, height: 320, type: 'stickers', contentHtml: content,
+      title: '電子獎勵與互動音效', icon: 'fa-award', iconColor: '#FFD166', width: 360, height: 420, type: 'stickers', contentHtml: content,
       onInit: (el) => {
+        // Bind Sound Effect Buttons
+        el.querySelectorAll('.sfx-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const targetSfx = soundEffects.find(s => s.id === id);
+            if (targetSfx) {
+              btn.style.transform = 'scale(0.92)';
+              setTimeout(() => btn.style.transform = '', 140);
+              targetSfx.fn();
+            }
+          });
+        });
+
         const clearBtn = el.querySelector('#stickers-clear-all-btn');
         if (clearBtn) {
           clearBtn.addEventListener('click', () => {
             const allStamps = document.querySelectorAll('.puti-screen-sticker-stamp');
-            if (allStamps.length === 0) return alert('目前桌面上沒有蓋出的貼紕！');
-            if (confirm(`確定要清除桌面上的 ${allStamps.length} 張貼紕嗎？`)) {
+            if (allStamps.length === 0) return alert('目前桌面上沒有蓋出的貼紙！');
+            if (confirm(`確定要清除桌面上的 ${allStamps.length} 張貼紙嗎？`)) {
               allStamps.forEach(s => s.remove());
               window.soundEngine.playPop();
             }
           });
         }
+
         el.querySelectorAll('.sticker-badge').forEach(badge => {
           badge.addEventListener('click', () => {
             const emoji = badge.dataset.emoji;
             window.soundEngine.playFanfare();
             if (typeof confetti === 'function') confetti({ particleCount: 30, spread: 50 });
-            const stamp = document.createElement('div'); stamp.className = 'puti-screen-sticker-stamp';
+            const stamp = document.createElement('div');
+            stamp.className = 'puti-screen-sticker-stamp';
             stamp.style.cssText = `position: absolute; left: ${Math.random()*300+100}px; top: ${Math.random()*200+80}px; font-size: 4.5rem; cursor: grab; user-select: none; z-index: 200; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.25)); animation: stampBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);`;
-            stamp.textContent = emoji; stamp.title = '雙擊移除，按住拖曳';
+            stamp.textContent = emoji;
+            stamp.title = '雙擊可撕除此貼紙';
             let isDragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
-            stamp.addEventListener('pointerdown', (e) => { isDragging = true; stamp.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; ox = stamp.offsetLeft; oy = stamp.offsetTop; });
-            stamp.addEventListener('pointermove', (e) => { if (!isDragging) return; stamp.style.left = (ox + e.clientX - sx) + 'px'; stamp.style.top = (oy + e.clientY - sy) + 'px'; });
-            stamp.addEventListener('pointerup', (e) => { isDragging = false; try { stamp.releasePointerCapture(e.pointerId); } catch(err){} });
-            stamp.addEventListener('dblclick', () => stamp.remove());
+            stamp.addEventListener('pointerdown', (e) => {
+              isDragging = true;
+              stamp.setPointerCapture(e.pointerId);
+              sx = e.clientX;
+              sy = e.clientY;
+              ox = stamp.offsetLeft;
+              oy = stamp.offsetTop;
+            });
+            stamp.addEventListener('pointermove', (e) => {
+              if (!isDragging) return;
+              stamp.style.left = (ox + e.clientX - sx) + 'px';
+              stamp.style.top = (oy + e.clientY - sy) + 'px';
+            });
+            stamp.addEventListener('pointerup', (e) => {
+              isDragging = false;
+              try { stamp.releasePointerCapture(e.pointerId); } catch(err){}
+            });
+            stamp.addEventListener('dblclick', () => {
+              stamp.remove();
+              window.soundEngine.playPop();
+            });
             document.getElementById('desktop-canvas').appendChild(stamp);
           });
         });
       }
     });
   },
-
   spawnPDFViewer(wm) {
     const sampleLessonDoc = `<div style="background: #FFF; padding: 24px; font-family: sans-serif; color: #2D3748; height: 100%; overflow-y: auto;"><h2 style="color: #FF9F1C; border-bottom: 2px solid #FF9F1C; padding-bottom: 6px; margin-bottom: 14px;">國小自然科學 · 探索學習單</h2><div style="font-weight: 700; margin-bottom: 10px;">單元：植物的器官與光合作用</div><p style="line-height: 1.8; margin-bottom: 12px;">一、核心觀念：植物透過葉綠體吸收日光進行光合作用。</p><div style="border: 2px dashed #CBD5E1; border-radius: 12px; height: 120px; display: flex; align-items: center; justify-content: center; color: #94A3B8; margin-top: 20px;">請直接拖入電腦中的 PDF 檔案</div></div>`;
     const content = `
